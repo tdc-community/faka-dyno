@@ -1150,6 +1150,7 @@ function App() {
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M5 20h14v-2H5zm7-18-5.5 5.5 1.42 1.42L11 5.84V16h2V5.84l3.08 3.08 1.42-1.42z" />
               </svg>
+              <span>Upload</span>
             </button>
           </div>
         </aside>
