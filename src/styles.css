@@ -211,8 +211,8 @@ textarea {
 }
 
 .notes-section textarea {
-  min-height: 180px;
-  max-height: 280px;
+  min-height: 240px;
+  max-height: 360px;
   padding-bottom: 24px;
 }
 
@@ -490,7 +490,8 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .vehicle-submeta span {
-  font-size: 0.68rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
   color: #8e98ac;
 }
 
@@ -585,6 +586,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .graph-legend-inside {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   z-index: 4;
   margin: 8px 0 0 8px;
@@ -618,6 +620,15 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .graph-legend-inside button.is-off {
   opacity: 0.4;
+}
+
+.graph-legend-stat {
+  font-size: 0.68rem;
+  color: #c2cede;
+  border: 1px solid rgba(140, 152, 172, 0.35);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: rgba(10, 14, 24, 0.7);
 }
 
 .rpm-gauge {
@@ -724,12 +735,6 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   letter-spacing: 0.08em;
 }
 
-.metric-chip {
-  fill: #b5c0d6;
-  font-size: 11px;
-  letter-spacing: 0.03em;
-}
-
 .doc-footer {
   margin-top: 6px;
   border-top: 1px dashed rgba(230, 30, 30, 0.34);
@@ -743,7 +748,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 .tech-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -971,6 +976,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   animation: none !important;
   transition: none !important;
 }
+
 
 @media (max-width: 1100px) {
   body {

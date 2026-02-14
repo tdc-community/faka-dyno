@@ -31,11 +31,13 @@ const sliderConfig = [
   { key: "rpm", label: "Max RPM", min: 4500, max: 9000, step: 50 },
 ];
 
-const MECHANIC_NOTES_MAX_LENGTH = 320;
+const MECHANIC_NOTES_MAX_LENGTH = 1024;
 const STORAGE_KEY = "faka-dyno-state-v1";
 const API_KEY_STORAGE_KEY = "faka-dyno-api-key";
 const IMGBB_API_KEY_STORAGE_KEY = "faka-dyno-imgbb-api-key";
 const UPLOAD_PROVIDER_STORAGE_KEY = "faka-dyno-upload-provider";
+const EXPORT_WIDTH = 1000;
+const EXPORT_RENDER_SCALE = 2;
 
 const UPLOAD_PROVIDERS = {
   primary: "primary",
@@ -293,7 +295,7 @@ function toSmoothPath(points) {
   return path.join(" ");
 }
 
-function DynoGraph({ whp, wtq, rpm, psi, afr, showHp, showTq }) {
+function DynoGraph({ whp, wtq, rpm, showHp, showTq }) {
   const width = 900;
   const height = 430;
   const pad = { top: 24, right: 24, bottom: 44, left: 52 };
@@ -456,13 +458,6 @@ function DynoGraph({ whp, wtq, rpm, psi, afr, showHp, showTq }) {
       >
         Power / Torque
       </text>
-
-      <text x={width - 30} y={24} className="metric-chip" textAnchor="end">
-        HP {whp} | TQ {wtq}
-      </text>
-      <text x={width - 30} y={42} className="metric-chip" textAnchor="end">
-        Max RPM {rpm} | Boost {psi.toFixed(1)} | AFR {afr.toFixed(1)}
-      </text>
     </svg>
   );
 }
@@ -623,12 +618,8 @@ function App() {
 
     setIsDownloading(true);
     try {
-      let blob = await renderPreviewBlob(4);
-      if (!isValidImageBlob(blob)) {
-        blob = await renderPreviewBlob(3);
-      }
-
-      if (!isValidImageBlob(blob)) {
+      const blob = await getBestCaptureBlob();
+      if (!blob) {
         showToast("Грешка при генериране на изображение", "error");
         return;
       }
@@ -644,7 +635,7 @@ function App() {
     }
   };
 
-  const renderPreviewBlob = async (scale = 4) => {
+  const renderPreviewBlob = async (scale = EXPORT_RENDER_SCALE) => {
     if (!previewRef.current) {
       return null;
     }
@@ -652,6 +643,8 @@ function App() {
     await waitForPreviewReady(previewRef.current);
 
     const target = previewRef.current;
+    const exportWidth = EXPORT_WIDTH;
+    let exportHeight = 0;
 
     let canvas;
     try {
@@ -662,19 +655,68 @@ function App() {
         imageTimeout: 0,
         removeContainer: true,
         logging: false,
-        width: target.clientWidth,
-        height: target.clientHeight,
+        windowWidth: exportWidth,
+        scrollX: 0,
+        scrollY: 0,
         onclone: (clonedDoc) => {
           clonedDoc.documentElement.classList.add("capture-mode");
+          const clonedPreview = clonedDoc.getElementById("report-preview");
+          if (clonedPreview) {
+            clonedPreview.style.position = "fixed";
+            clonedPreview.style.left = "0";
+            clonedPreview.style.top = "0";
+            clonedPreview.style.margin = "0";
+            clonedPreview.style.width = `${exportWidth}px`;
+            clonedPreview.style.maxWidth = `${exportWidth}px`;
+            clonedPreview.style.minWidth = `${exportWidth}px`;
+            clonedPreview.style.height = "auto";
+            clonedPreview.style.maxHeight = "none";
+            clonedPreview.style.minHeight = "0";
+            clonedPreview.style.overflow = "visible";
+            clonedPreview.style.transform = "none";
+
+            exportHeight = Math.max(
+              1,
+              Math.ceil(
+                clonedPreview.scrollHeight || clonedPreview.clientHeight,
+              ),
+            );
+            clonedPreview.style.height = `${exportHeight}px`;
+          }
         },
       });
     } catch {
       return null;
     }
 
+    const outputWidth = exportWidth;
+    const outputHeight = Math.max(
+      1,
+      exportHeight ||
+        Math.round((canvas.height / Math.max(1, canvas.width)) * outputWidth),
+    );
+
+    const outputCanvas = document.createElement("canvas");
+    outputCanvas.width = outputWidth;
+    outputCanvas.height = outputHeight;
+    const outputCtx = outputCanvas.getContext("2d");
+    if (!outputCtx) {
+      return null;
+    }
+
+    outputCtx.drawImage(canvas, 0, 0, outputWidth, outputHeight);
+
     return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/png", 1);
+      outputCanvas.toBlob((blob) => resolve(blob), "image/png", 1);
     });
+  };
+
+  const getBestCaptureBlob = async () => {
+    let blob = await renderPreviewBlob(4);
+    if (!isValidImageBlob(blob)) {
+      blob = await renderPreviewBlob(3);
+    }
+    return isValidImageBlob(blob) ? blob : null;
   };
 
   const handleCopy = async () => {
@@ -689,12 +731,8 @@ function App() {
     try {
       try {
         if (clipboard?.write && ClipboardCtor) {
-          let blob = await renderPreviewBlob(4);
-          if (!isValidImageBlob(blob)) {
-            blob = await renderPreviewBlob(3);
-          }
-
-          if (isValidImageBlob(blob)) {
+          const blob = await getBestCaptureBlob();
+          if (blob) {
             await clipboard.write([new ClipboardCtor({ "image/png": blob })]);
             showToast("Изображението е копирано", "success");
             return;
@@ -791,12 +829,8 @@ function App() {
     setIsUploading(true);
 
     try {
-      let blob = await renderPreviewBlob(4);
-      if (!isValidImageBlob(blob)) {
-        blob = await renderPreviewBlob(3);
-      }
-
-      if (!isValidImageBlob(blob)) {
+      const blob = await getBestCaptureBlob();
+      if (!blob) {
         showToast("Грешка при подготовка на файла", "error");
         return;
       }
@@ -1107,7 +1141,7 @@ function App() {
           </div>
         </aside>
 
-        <section className="preview-panel" ref={previewRef}>
+        <section className="preview-panel" id="report-preview" ref={previewRef}>
           <header className="preview-header">
             <div>
               <p className="shop-name">{SHOP_NAME}</p>
@@ -1147,8 +1181,6 @@ function App() {
                 whp={data.whp}
                 wtq={data.wtq}
                 rpm={data.rpm}
-                psi={data.psi}
-                afr={data.afr}
                 showHp={showHp}
                 showTq={showTq}
               />
@@ -1167,6 +1199,9 @@ function App() {
                 >
                   <i className="legend-tq" /> TQ линия
                 </button>
+                <span className="graph-legend-stat">HP {data.whp}</span>
+                <span className="graph-legend-stat">TQ {data.wtq}</span>
+                <span className="graph-legend-stat">Max RPM {data.rpm}</span>
               </div>
             </div>
             <RpmGauge rpm={data.rpm} />
@@ -1189,14 +1224,6 @@ function App() {
 
           <footer className="doc-footer">
             <div className="tech-grid">
-              <div>
-                <span>Гориво</span>
-                <strong>{data.fuel}</strong>
-              </div>
-              <div>
-                <span>Аванс</span>
-                <strong>18.5 deg</strong>
-              </div>
               <div>
                 <span>Външна темп</span>
                 <strong>{data.extTemp}</strong>
