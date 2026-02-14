@@ -9,7 +9,6 @@ const defaults = {
   engine: "V8 TT",
   plate: "FAKA-900R",
   drivetrain: "RWD",
-  fuel: "E85",
   extTemp: "24 C",
   humidity: "52",
   correctionFactor: "1.02",
@@ -36,6 +35,8 @@ const STORAGE_KEY = "faka-dyno-state-v1";
 const API_KEY_STORAGE_KEY = "faka-dyno-api-key";
 const IMGBB_API_KEY_STORAGE_KEY = "faka-dyno-imgbb-api-key";
 const UPLOAD_PROVIDER_STORAGE_KEY = "faka-dyno-upload-provider";
+const SPLASH_LAST_SEEN_KEY = "faka-dyno-splash-last-seen";
+const SPLASH_SKIP_WINDOW_MS = 4 * 60 * 60 * 1000;
 const EXPORT_WIDTH = 1000;
 const EXPORT_RENDER_SCALE = 2;
 
@@ -503,6 +504,19 @@ function App() {
   const [data, setData] = useState(persistedState.data);
   const [showHp, setShowHp] = useState(persistedState.showHp);
   const [showTq, setShowTq] = useState(persistedState.showTq);
+  const [hasStarted, setHasStarted] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const lastSeenRaw = window.localStorage.getItem(SPLASH_LAST_SEEN_KEY);
+    const lastSeen = Number(lastSeenRaw || 0);
+    if (!Number.isFinite(lastSeen) || lastSeen <= 0) {
+      return false;
+    }
+
+    return Date.now() - lastSeen < SPLASH_SKIP_WINDOW_MS;
+  });
   const [mainApiKey, setMainApiKey] = useState(() => {
     if (typeof window === "undefined") {
       return "";
@@ -932,6 +946,34 @@ function App() {
     [],
   );
 
+  useEffect(() => {
+    if (!hasStarted || typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(SPLASH_LAST_SEEN_KEY, String(Date.now()));
+  }, [hasStarted]);
+
+  if (!hasStarted) {
+    return (
+      <main className="splash-screen">
+        <button
+          type="button"
+          className="splash-trigger"
+          onClick={() => setHasStarted(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              setHasStarted(true);
+            }
+          }}
+        >
+          <img src={logo} alt="FAKA Performance" className="splash-logo" />
+          <span>Натисни за старт</span>
+        </button>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <section className="layout">
@@ -989,14 +1031,6 @@ function App() {
             <div className="section-block">
               <h2>УСЛОВИЯ НА ТЕСТА</h2>
               <div className="input-grid">
-                <label>
-                  Гориво
-                  <input
-                    type="text"
-                    value={data.fuel}
-                    onChange={updateText("fuel")}
-                  />
-                </label>
                 <label>
                   Външна темп
                   <input
