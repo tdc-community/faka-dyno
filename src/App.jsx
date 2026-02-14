@@ -23,7 +23,7 @@ const defaults = {
 };
 
 const sliderConfig = [
-  { key: "whp", label: "Max HP", min: 0, max: 1200, step: 1 },
+  { key: "whp", label: "Max HP", min: 0, max: 2200, step: 1 },
   { key: "wtq", label: "Max TQ", min: 0, max: 1200, step: 1 },
   { key: "psi", label: "Boost PSI", min: 0, max: 40, step: 0.1 },
   { key: "afr", label: "AFR", min: 0, max: 14, step: 0.1 },
