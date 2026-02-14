@@ -80,7 +80,12 @@ body {
   width: min(460px, 86vw);
   height: min(190px, 32vw);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(230, 30, 30, 0.45) 0%, rgba(230, 30, 30, 0.12) 45%, rgba(230, 30, 30, 0) 75%);
+  background: radial-gradient(
+    circle,
+    rgba(230, 30, 30, 0.45) 0%,
+    rgba(230, 30, 30, 0.12) 45%,
+    rgba(230, 30, 30, 0) 75%
+  );
   filter: blur(10px);
   z-index: 0;
   animation: splash-pulse-glow 1500ms ease-in-out infinite;
@@ -135,24 +140,25 @@ body {
 
 .app-shell {
   height: 100vh;
-  padding: 10px;
+  padding: clamp(10px, 1.6vh, 18px);
   display: grid;
   place-items: center;
+  position: relative;
 }
 
 .layout {
-  width: min(1820px, 99vw);
-  height: calc(100vh - 20px);
+  width: min(1820px, calc(100vw - clamp(20px, 3.2vw, 38px)));
+  height: clamp(760px, calc(100vh - clamp(20px, 3.2vh, 38px)), 1020px);
   border: 1px solid var(--border);
   border-radius: 22px;
   background: linear-gradient(145deg, #1b1b1f, var(--bg-container));
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.52),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  padding: 14px;
+  padding: clamp(10px, 1.2vh, 14px);
   display: grid;
   grid-template-columns: 0.92fr 1.4fr;
-  gap: 14px;
+  gap: clamp(8px, 1vh, 14px);
 }
 
 .form-panel,
@@ -196,7 +202,7 @@ body {
 
 .form-panel {
   border: 1px solid var(--border-soft);
-  padding: 16px;
+  padding: clamp(12px, 1.4vh, 16px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -207,9 +213,6 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-}
-
-.form-content {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -292,8 +295,8 @@ textarea {
 }
 
 .notes-section textarea {
-  min-height: 240px;
-  max-height: 360px;
+  min-height: clamp(160px, 20vh, 240px);
+  max-height: clamp(240px, 32vh, 360px);
   padding-bottom: 24px;
 }
 
@@ -359,10 +362,20 @@ select:focus {
   margin-bottom: 0;
 }
 
-.slider-row strong {
-  min-width: 58px;
-  text-align: right;
+.slider-value-input {
+  width: 72px;
+  border: 1px solid rgba(220, 84, 97, 0.32);
+  border-radius: 8px;
+  background: rgba(8, 10, 15, 0.75);
+  color: var(--text-main);
+  padding: 6px 8px;
+  font-family: inherit;
   font-size: 0.82rem;
+  text-align: right;
+}
+
+.slider-value-input:focus {
+  outline: 2px solid rgba(230, 30, 30, 0.34);
 }
 
 input[type="range"] {
@@ -474,6 +487,10 @@ input[type="range"]:focus-visible::-moz-range-thumb {
     opacity 160ms ease;
 }
 
+.utility-actions .upload-right {
+  margin-left: auto;
+}
+
 .utility-actions button:hover:not(:disabled) {
   transform: translateY(-1px);
   filter: brightness(1.08);
@@ -494,17 +511,25 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 .preview-panel {
   border: 1px solid var(--border-soft);
   border-radius: 0;
-  padding: 16px;
-  padding-bottom: 76px;
+  padding: clamp(12px, 1.4vh, 16px);
+  padding-bottom: clamp(6px, 0.9vh, 10px);
   display: flex;
   flex-direction: column;
   gap: 12px;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   -webkit-user-select: none;
   user-select: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.preview-panel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .preview-header {
@@ -571,7 +596,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .vehicle-submeta span {
-  font-size: 0.9rem;
+  font-size: clamp(0.78rem, 0.95vw, 0.9rem);
   line-height: 1.35;
   color: #8e98ac;
 }
@@ -631,7 +656,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 
 .graph-shell {
   flex: 0 0 auto;
-  height: 450px;
+  height: clamp(320px, 40vh, 450px);
   border: 1px solid rgba(230, 30, 30, 0.24);
   border-radius: 10px;
   background: linear-gradient(180deg, #121827, #101624);
@@ -857,17 +882,17 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   display: inline-block;
   border-bottom: 1px solid rgba(230, 30, 30, 0.55);
   padding-bottom: 2px;
-  margin: 0;
+  margin: auto 0 0;
+  align-self: flex-end;
   width: fit-content;
-  position: absolute;
-  right: 16px;
-  bottom: 14px;
+  position: static;
 }
 
 .mechanic-notes {
   margin-top: 4px;
   border-top: 1px dashed rgba(230, 30, 30, 0.28);
   padding-top: 10px;
+  padding-bottom: 8px;
 }
 
 .mechanic-notes .notes-title {
@@ -887,11 +912,11 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 }
 
 .settings-fab {
-  position: fixed;
-  left: 14px;
-  bottom: 14px;
-  width: 42px;
-  height: 42px;
+  position: absolute;
+  left: clamp(6px, 0.9vw, 12px);
+  bottom: clamp(6px, 1.2vh, 12px);
+  width: clamp(36px, 4.2vh, 42px);
+  height: clamp(36px, 4.2vh, 42px);
   border-radius: 50%;
   border: 1px solid rgba(255, 145, 158, 0.45);
   background: linear-gradient(160deg, #d63f4d, #a10f1c 70%);
@@ -1060,7 +1085,6 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   transition: none !important;
 }
 
-
 @media (max-width: 1100px) {
   body {
     overflow: auto;
@@ -1108,10 +1132,6 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   .slider-row {
     grid-template-columns: 1fr;
     align-items: stretch;
-  }
-
-  .slider-row strong {
-    text-align: left;
   }
 
   .doc-footer {

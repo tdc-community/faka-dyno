@@ -15,19 +15,19 @@ const defaults = {
   operator: "A. Mercer",
   owner: "Franklin Clinton",
   mechanicNotes: "Проверен бууст контролер. Няма детонации при пълен товар.",
-  whp: 618,
-  wtq: 575,
-  psi: 23.0,
-  afr: 11.9,
-  rpm: 7900,
+  whp: 0,
+  wtq: 0,
+  psi: 0,
+  afr: 0,
+  rpm: 0,
 };
 
 const sliderConfig = [
-  { key: "whp", label: "Max HP", min: 300, max: 1200, step: 1 },
-  { key: "wtq", label: "Max TQ", min: 300, max: 1200, step: 1 },
-  { key: "psi", label: "Boost PSI", min: 5, max: 40, step: 0.1 },
-  { key: "afr", label: "AFR", min: 9, max: 14, step: 0.1 },
-  { key: "rpm", label: "Max RPM", min: 4500, max: 9000, step: 50 },
+  { key: "whp", label: "Max HP", min: 0, max: 1200, step: 1 },
+  { key: "wtq", label: "Max TQ", min: 0, max: 1200, step: 1 },
+  { key: "psi", label: "Boost PSI", min: 0, max: 40, step: 0.1 },
+  { key: "afr", label: "AFR", min: 0, max: 14, step: 0.1 },
+  { key: "rpm", label: "Max RPM", min: 0, max: 9000, step: 50 },
 ];
 
 const MECHANIC_NOTES_MAX_LENGTH = 1024;
@@ -50,6 +50,22 @@ const DEFAULT_STORAGE_STATE = {
   showHp: true,
   showTq: true,
 };
+
+function getStoredValue(key, fallback = "") {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  return window.localStorage.getItem(key) || fallback;
+}
+
+function setStoredValue(key, value) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(key, value);
+}
 
 function safeParse(json, fallback) {
   try {
@@ -302,7 +318,7 @@ function DynoGraph({ whp, wtq, rpm, showHp, showTq }) {
   const pad = { top: 24, right: 24, bottom: 44, left: 52 };
 
   const chart = useMemo(() => {
-    const minRpm = 2000;
+    const minRpm = 0;
     const maxRpm = Math.max(minRpm + 1200, rpm);
     const yMax = Math.max(900, Math.ceil((Math.max(whp, wtq) + 120) / 50) * 50);
     const steps = 220;
@@ -463,7 +479,7 @@ function DynoGraph({ whp, wtq, rpm, showHp, showTq }) {
   );
 }
 
-function RpmGauge({ rpm, minRpm = 2000, maxRpm = 9000, redline = 8500 }) {
+function RpmGauge({ rpm, minRpm = 0, maxRpm = 9000, redline = 8500 }) {
   const clamped = Math.max(minRpm, Math.min(maxRpm, rpm));
   const ratio = (clamped - minRpm) / (maxRpm - minRpm || 1);
   const segments = 18;
@@ -505,11 +521,7 @@ function App() {
   const [showHp, setShowHp] = useState(persistedState.showHp);
   const [showTq, setShowTq] = useState(persistedState.showTq);
   const [hasStarted, setHasStarted] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    const lastSeenRaw = window.localStorage.getItem(SPLASH_LAST_SEEN_KEY);
+    const lastSeenRaw = getStoredValue(SPLASH_LAST_SEEN_KEY, "0");
     const lastSeen = Number(lastSeenRaw || 0);
     if (!Number.isFinite(lastSeen) || lastSeen <= 0) {
       return false;
@@ -517,26 +529,14 @@ function App() {
 
     return Date.now() - lastSeen < SPLASH_SKIP_WINDOW_MS;
   });
-  const [mainApiKey, setMainApiKey] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
-    return window.localStorage.getItem(API_KEY_STORAGE_KEY) || "";
-  });
-  const [imgbbApiKey, setImgbbApiKey] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
-    return window.localStorage.getItem(IMGBB_API_KEY_STORAGE_KEY) || "";
-  });
+  const [mainApiKey, setMainApiKey] = useState(() =>
+    getStoredValue(API_KEY_STORAGE_KEY),
+  );
+  const [imgbbApiKey, setImgbbApiKey] = useState(() =>
+    getStoredValue(IMGBB_API_KEY_STORAGE_KEY),
+  );
   const [uploadProvider, setUploadProvider] = useState(() => {
-    if (typeof window === "undefined") {
-      return UPLOAD_PROVIDERS.primary;
-    }
-
-    const stored = window.localStorage.getItem(UPLOAD_PROVIDER_STORAGE_KEY);
+    const stored = getStoredValue(UPLOAD_PROVIDER_STORAGE_KEY);
     return stored === UPLOAD_PROVIDERS.imgbb
       ? UPLOAD_PROVIDERS.imgbb
       : UPLOAD_PROVIDERS.primary;
@@ -581,6 +581,21 @@ function App() {
     }));
   };
 
+  const updateMetricInput = (item) => (event) => {
+    const rawText = event.target.value;
+    const parsed = Number(rawText);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+
+    const clamped = Math.max(item.min, Math.min(item.max, parsed));
+    const nextValue =
+      item.key === "psi" || item.key === "afr"
+        ? Number(clamped.toFixed(1))
+        : Math.round(clamped);
+    setData((prev) => ({ ...prev, [item.key]: nextValue }));
+  };
+
   const showToast = (message, tone = "info") => {
     if (toastTimerRef.current) {
       window.clearTimeout(toastTimerRef.current);
@@ -593,37 +608,6 @@ function App() {
   };
 
   const handleReset = () => setData(defaults);
-
-  const handleShuffle = () => {
-    const randInt = (min, max) => Math.round(min + Math.random() * (max - min));
-    const randFloat = (min, max, precision = 1) => {
-      const value = min + Math.random() * (max - min);
-      return Number(value.toFixed(precision));
-    };
-
-    const rpm = randInt(6200, 8600);
-    const wtq = randInt(520, 1080);
-    const whp = Math.round((wtq * rpm) / 7600);
-    const psi = randFloat(18, 34, 1);
-    const afr = randFloat(11.1, 12.3, 1);
-    const extTemp = `${randInt(12, 36)} C`;
-    const humidity = String(randInt(28, 74));
-    const correctionFactor = randFloat(0.97, 1.04, 2).toFixed(2);
-
-    setData((prev) => ({
-      ...prev,
-      whp,
-      wtq,
-      rpm,
-      psi,
-      afr,
-      extTemp,
-      humidity,
-      correctionFactor,
-      mechanicNotes:
-        "Генерирани тестови стойности. Проверка на сместа и бууст налягането.",
-    }));
-  };
 
   const handleDownload = async () => {
     if (isDownloading) {
@@ -791,9 +775,7 @@ function App() {
 
   const saveApiKey = () => {
     setUploadProvider(providerDraft);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(UPLOAD_PROVIDER_STORAGE_KEY, providerDraft);
-    }
+    setStoredValue(UPLOAD_PROVIDER_STORAGE_KEY, providerDraft);
 
     const nextKey = apiKeyDraft.trim();
     if (!nextKey) {
@@ -804,14 +786,10 @@ function App() {
 
     if (providerDraft === UPLOAD_PROVIDERS.imgbb) {
       setImgbbApiKey(nextKey);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(IMGBB_API_KEY_STORAGE_KEY, nextKey);
-      }
+      setStoredValue(IMGBB_API_KEY_STORAGE_KEY, nextKey);
     } else {
       setMainApiKey(nextKey);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(API_KEY_STORAGE_KEY, nextKey);
-      }
+      setStoredValue(API_KEY_STORAGE_KEY, nextKey);
     }
 
     setIsApiModalOpen(false);
@@ -947,11 +925,11 @@ function App() {
   );
 
   useEffect(() => {
-    if (!hasStarted || typeof window === "undefined") {
+    if (!hasStarted) {
       return;
     }
 
-    window.localStorage.setItem(SPLASH_LAST_SEEN_KEY, String(Date.now()));
+    setStoredValue(SPLASH_LAST_SEEN_KEY, String(Date.now()));
   }, [hasStarted]);
 
   if (!hasStarted) {
@@ -1104,11 +1082,16 @@ function App() {
                       )}%`,
                     }}
                   />
-                  <strong>
-                    {item.key === "psi" || item.key === "afr"
-                      ? data[item.key].toFixed(1)
-                      : data[item.key]}
-                  </strong>
+                  <input
+                    className="slider-value-input"
+                    type="text"
+                    value={
+                      item.key === "psi" || item.key === "afr"
+                        ? data[item.key].toFixed(1)
+                        : data[item.key]
+                    }
+                    onChange={updateMetricInput(item)}
+                  />
                 </label>
               ))}
             </div>
@@ -1137,11 +1120,6 @@ function App() {
                 <path d="M12 5a7 7 0 1 1-6.95 8h2.1A5 5 0 1 0 12 7v3l-4-4 4-4z" />
               </svg>
             </button>
-            <button type="button" title="Shuffle" onClick={handleShuffle}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M17 3h4v4h-2V6.41l-5.29 5.3-1.42-1.42 5.3-5.29H17zm2 14h2v4h-4v-2h.59l-3.88-3.88 1.42-1.42L19 17.59V17zM3 7h4.59l9 9H21v2h-5.24l-9-9H3V7zm0 10h3.29l2-2 1.42 1.42L6.71 19H3v-2z" />
-              </svg>
-            </button>
             <button
               type="button"
               title="Download"
@@ -1154,22 +1132,23 @@ function App() {
             </button>
             <button
               type="button"
-              title="Upload"
-              onClick={handleUpload}
-              disabled={isUploading}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 20h14v-2H5zm7-18-5.5 5.5 1.42 1.42L11 5.84V16h2V5.84l3.08 3.08 1.42-1.42z" />
-              </svg>
-            </button>
-            <button
-              type="button"
               title="Copy"
               onClick={handleCopy}
               disabled={isCopying}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m0 16H8V7h11z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="upload-right"
+              title="Upload"
+              onClick={handleUpload}
+              disabled={isUploading}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 20h14v-2H5zm7-18-5.5 5.5 1.42 1.42L11 5.84V16h2V5.84l3.08 3.08 1.42-1.42z" />
               </svg>
             </button>
           </div>
@@ -1280,8 +1259,9 @@ function App() {
           <div className="mechanic-notes">
             <p className="notes-title">Бележки на механика</p>
             <p>{data.mechanicNotes}</p>
-            <div className="signature">{data.operator}</div>
           </div>
+
+          <div className="signature">{data.operator}</div>
         </section>
       </section>
 
@@ -1306,7 +1286,7 @@ function App() {
           <div className="api-modal">
             <h3>API Настройки</h3>
             <label>
-              Доставчик
+              Hosting provider
               <select
                 value={providerDraft}
                 onChange={(event) => {
