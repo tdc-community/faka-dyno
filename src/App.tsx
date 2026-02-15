@@ -39,7 +39,7 @@ const sliderConfig: SliderItem[] = [
   { key: "wtq", label: "Max TQ", min: 0, max: 1200, step: 1 },
   { key: "psi", label: "Boost PSI", min: 0, max: 40, step: 0.1 },
   { key: "afr", label: "AFR", min: 0, max: 14, step: 0.1 },
-  { key: "rpm", label: "Max RPM", min: 0, max: 9000, step: 50 },
+  { key: "rpm", label: "Max RPM", min: 0, max: 12000, step: 50 },
 ];
 
 const MECHANIC_NOTES_MAX_LENGTH = 1024;
@@ -469,6 +469,13 @@ interface InlineEditableProps {
   maxLength?: number;
 }
 
+interface InlineEditableSelectProps {
+  value: string;
+  options: string[];
+  onCommit: (value: string) => void;
+  className?: string;
+}
+
 function InlineEditable({
   value,
   onCommit,
@@ -541,6 +548,53 @@ function InlineEditable({
           }
         }}
       />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`inline-editable-display ${className}`.trim()}
+      onClick={() => setEditing(true)}
+      title="Click to edit"
+    >
+      {value || "-"}
+    </button>
+  );
+}
+
+function InlineEditableSelect({
+  value,
+  options,
+  onCommit,
+  className = "",
+}: InlineEditableSelectProps) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <select
+        className={`inline-editable-input inline-editable-select ${className}`.trim()}
+        value={value}
+        autoFocus
+        onChange={(event) => {
+          onCommit(event.target.value);
+          setEditing(false);
+        }}
+        onBlur={() => setEditing(false)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setEditing(false);
+          }
+        }}
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     );
   }
 
@@ -1444,8 +1498,9 @@ function App() {
             <p>
               <span>Задвижване</span>
               <strong>
-                <InlineEditable
+                <InlineEditableSelect
                   value={data.drivetrain}
+                  options={["AWD", "RWD", "FWD"]}
                   onCommit={(next) => applyInlineUpdate("drivetrain", next)}
                 />
               </strong>

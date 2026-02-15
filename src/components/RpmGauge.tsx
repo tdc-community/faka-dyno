@@ -5,7 +5,7 @@ interface RpmGaugeProps {
   redline?: number;
 }
 
-export default function RpmGauge({ rpm, minRpm = 0, maxRpm = 9000, redline = 8500 }: RpmGaugeProps) {
+export default function RpmGauge({ rpm, minRpm = 0, maxRpm = 12000, redline = 11000 }: RpmGaugeProps) {
   const clamped = Math.max(minRpm, Math.min(maxRpm, rpm));
   const ratio = (clamped - minRpm) / (maxRpm - minRpm || 1);
   const segments = 18;
