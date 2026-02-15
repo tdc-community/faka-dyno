@@ -1529,10 +1529,6 @@ function App() {
                 </strong>
               </div>
               <div>
-                <span>Max RPM</span>
-                <strong>{data.rpm}</strong>
-              </div>
-              <div>
                 <span>Кор. фактор</span>
                 <strong>
                   <InlineEditable
