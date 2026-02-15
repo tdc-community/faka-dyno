@@ -1,6 +1,6 @@
 import type { RecentUpload, UploadProvider } from "../types";
 
-export const PRIMARY_API_BASE = "https://i.webproj.space/fapi";
+export const PRIMARY_API_BASE = "https://webproj.space/fapi";
 
 function ensureNonEmpty(value: string, field: string): string {
   const trimmed = value.trim();
@@ -181,8 +181,6 @@ export async function searchUploads(
 
   const params = new URLSearchParams({
     q: safeQuery,
-    query: safeQuery,
-    filename: `*${safeQuery}*`,
   });
 
   const response = await fetch(
