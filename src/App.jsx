@@ -855,7 +855,7 @@ function App() {
           const formData = new FormData();
           formData.append("file", uploadBlob, fileName);
 
-          response = await fetch("https://i.webproj.space/api/upload", {
+          response = await fetch("https://i.webproj.space/fapi/upload", {
             method: "POST",
             headers: {
               "X-API-Key": activeApiKey,
