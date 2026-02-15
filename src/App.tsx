@@ -244,7 +244,7 @@ function normalizeApiSearchResults(payload: unknown): RecentUpload[] {
       ),
     });
 
-    if (mapped.length >= MAX_RECENT_UPLOADS) {
+    if (mapped.length >= 200) {
       break;
     }
   }
@@ -265,6 +265,34 @@ function formatRecentUploadTime(createdAt: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function withTrailingDot(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return ".";
+  }
+
+  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function extractUploadedUrl(result: unknown, provider: UploadProvider): string {
+  if (!isRecord(result)) {
+    return "";
+  }
+
+  if (provider === UPLOAD_PROVIDERS.imgbb) {
+    const data = isRecord(result.data) ? result.data : {};
+    return typeof data.url === "string"
+      ? data.url
+      : typeof data.display_url === "string"
+        ? data.display_url
+        : typeof data.url_viewer === "string"
+          ? data.url_viewer
+          : "";
+  }
+
+  return typeof result.url === "string" ? result.url : "";
 }
 
 function safeParse<T>(json: string, fallback: T): T {
@@ -647,12 +675,6 @@ function App() {
     1,
   )} psi / ${data.afr.toFixed(1)}\nMax RPM: ${data.rpm}\nВъншна темп: ${data.extTemp}\nВлажност: ${data.humidity}%\nКорекционен фактор: ${data.correctionFactor}\nID: ${docMeta.unixId}\nОператор: ${data.operator}\nСобственик: ${data.owner}\nСъздаден: ${docMeta.createdAt}\nБележки: ${data.mechanicNotes}`;
 
-  const updateText =
-    (key: keyof DynoData) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      setData((prev) => ({ ...prev, [key]: event.target.value }));
-    };
-
   const updateMetric =
     (key: MetricKey) =>
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -706,7 +728,7 @@ function App() {
       window.clearTimeout(toastTimerRef.current);
     }
 
-    setToast({ message, tone });
+    setToast({ message: withTrailingDot(message), tone });
     toastTimerRef.current = window.setTimeout(() => {
       setToast(null);
     }, 2200);
@@ -738,6 +760,12 @@ function App() {
     const existing = readRecentUploads();
     const merged = mergeRecentUploads(existing, [nextItem]);
     setStoredValue(RECENT_UPLOADS_STORAGE_KEY, JSON.stringify(merged));
+  };
+
+  const setSearchOutcome = (items: RecentUpload[]) => {
+    setSearchResults(items);
+    setHasSearched(true);
+    setCurrentSearchPage(1);
   };
 
   const handleApiSearch = async () => {
@@ -777,9 +805,7 @@ function App() {
 
       const result = await response.json().catch(() => null);
       const normalized = normalizeApiSearchResults(result);
-      setSearchResults(normalized);
-      setHasSearched(true);
-      setCurrentSearchPage(1);
+      setSearchOutcome(normalized);
       showToast(
         normalized.length
           ? `Намерени ${normalized.length} файла`
@@ -787,9 +813,7 @@ function App() {
         normalized.length ? "success" : "info",
       );
     } catch {
-      setSearchResults([]);
-      setHasSearched(true);
-      setCurrentSearchPage(1);
+      setSearchOutcome([]);
       showToast("Грешка при търсене в API", "error");
     } finally {
       setIsSearching(false);
@@ -1061,12 +1085,7 @@ function App() {
         }
 
         const result = await response.json().catch(() => null);
-        const uploadedUrl =
-          uploadProvider === UPLOAD_PROVIDERS.imgbb
-            ? result?.data?.url ||
-              result?.data?.display_url ||
-              result?.data?.url_viewer
-            : result?.url;
+        const uploadedUrl = extractUploadedUrl(result, uploadProvider);
 
         if (uploadedUrl) {
           rememberRecentUpload(uploadedUrl, uploadProvider, fileName);
@@ -1186,7 +1205,7 @@ function App() {
         <aside className="form-panel">
           <div className="form-content">
             <div className="section-block sliders">
-              <h2>БЪРЗИ ДИНО КОНТРОЛИ</h2>
+              <h2>ДИНО ДАННИ</h2>
               {sliderConfig.map((item) => (
                 <label className="slider-row" key={item.key}>
                   <span>{item.label}</span>

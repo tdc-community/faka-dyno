@@ -270,7 +270,6 @@ select:focus,
   gap: 8px;
 }
 
-.search-row button,
 .search-row button {
   border: 1px solid rgba(255, 145, 158, 0.32);
   border-radius: 4px;
