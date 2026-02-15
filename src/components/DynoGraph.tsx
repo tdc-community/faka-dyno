@@ -48,7 +48,13 @@ function toSmoothPath(points: Point[]): string {
   return path.join(" ");
 }
 
-export default function DynoGraph({ whp, wtq, rpm, showHp, showTq }: DynoGraphProps) {
+export default function DynoGraph({
+  whp,
+  wtq,
+  rpm,
+  showHp,
+  showTq,
+}: DynoGraphProps) {
   const width = 900;
   const height = 430;
   const pad = { top: 24, right: 24, bottom: 44, left: 52 };
@@ -71,7 +77,11 @@ export default function DynoGraph({ whp, wtq, rpm, showHp, showTq }: DynoGraphPr
     const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
 
     const tqRawSamples: Array<{ rpm: number; tqRaw: number }> = [];
-    const hpRawSamples: Array<{ rpm: number; tqValue: number; hpRawValue: number }> = [];
+    const hpRawSamples: Array<{
+      rpm: number;
+      tqValue: number;
+      hpRawValue: number;
+    }> = [];
     for (let i = 0; i <= steps; i += 1) {
       const currentRpm = minRpm + (i / steps) * (maxRpm - minRpm);
 
@@ -123,7 +133,11 @@ export default function DynoGraph({ whp, wtq, rpm, showHp, showTq }: DynoGraphPr
   }, [whp, wtq, rpm]);
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Dyno horsepower and torque graph">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label="Dyno horsepower and torque graph"
+    >
       <rect x="0" y="0" width={width} height={height} fill="transparent" />
 
       {chart.yTicks.map((tick) => (
@@ -190,7 +204,12 @@ export default function DynoGraph({ whp, wtq, rpm, showHp, showTq }: DynoGraphPr
         </text>
       ))}
 
-      <text x={width / 2} y={height - 2} className="axis-title" textAnchor="middle">
+      <text
+        x={width / 2}
+        y={height - 2}
+        className="axis-title"
+        textAnchor="middle"
+      >
         RPM
       </text>
       <text

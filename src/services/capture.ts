@@ -1,6 +1,8 @@
 import html2canvas from "html2canvas";
 
-async function waitForPreviewReady(previewElement: HTMLElement | null): Promise<void> {
+async function waitForPreviewReady(
+  previewElement: HTMLElement | null,
+): Promise<void> {
   if (!previewElement) {
     return;
   }
@@ -9,7 +11,9 @@ async function waitForPreviewReady(previewElement: HTMLElement | null): Promise<
     await document.fonts.ready;
   }
 
-  const images = Array.from(previewElement.querySelectorAll<HTMLImageElement>("img"));
+  const images = Array.from(
+    previewElement.querySelectorAll<HTMLImageElement>("img"),
+  );
   await Promise.all(
     images.map((img) => {
       if (img.complete) {
@@ -30,7 +34,10 @@ export function isValidImageBlob(blob: Blob | null): blob is Blob {
   return Boolean(blob && blob.type === "image/png" && blob.size > 20000);
 }
 
-export async function prepareUploadBlob(blob: Blob | null, maxDimension = 1920): Promise<Blob | null> {
+export async function prepareUploadBlob(
+  blob: Blob | null,
+  maxDimension = 1920,
+): Promise<Blob | null> {
   if (!blob) {
     return null;
   }
@@ -147,7 +154,8 @@ export async function renderPreviewBlob(params: {
   const outputWidth = exportWidth;
   const outputHeight = Math.max(
     1,
-    exportHeight || Math.round((canvas.height / Math.max(1, canvas.width)) * outputWidth),
+    exportHeight ||
+      Math.round((canvas.height / Math.max(1, canvas.width)) * outputWidth),
   );
 
   const outputCanvas = document.createElement("canvas");
@@ -173,7 +181,11 @@ export async function getBestCaptureBlob(params: {
   const { previewElement, exportWidth, preferredScales = [4, 3] } = params;
 
   for (const scale of preferredScales) {
-    const blob = await renderPreviewBlob({ previewElement, exportWidth, scale });
+    const blob = await renderPreviewBlob({
+      previewElement,
+      exportWidth,
+      scale,
+    });
     if (isValidImageBlob(blob)) {
       return blob;
     }

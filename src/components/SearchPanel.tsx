@@ -45,7 +45,9 @@ export default function SearchPanel({
   onCopyUrl,
   formatRecentUploadTime,
 }: SearchPanelProps) {
-  const [brokenSearchThumbs, setBrokenSearchThumbs] = useState<Record<string, true>>({});
+  const [brokenSearchThumbs, setBrokenSearchThumbs] = useState<
+    Record<string, true>
+  >({});
   const searchResultsListRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -83,7 +85,11 @@ export default function SearchPanel({
         <button type="button" onClick={onSearch} disabled={isSearching}>
           {isSearching ? "Търсене..." : "Търси"}
         </button>
-        <button type="button" className="search-reset-btn" onClick={onResetSearch}>
+        <button
+          type="button"
+          className="search-reset-btn"
+          onClick={onResetSearch}
+        >
           Reset
         </button>
       </div>
@@ -107,7 +113,11 @@ export default function SearchPanel({
                     className="search-result-thumb"
                   >
                     <img
-                      src={brokenSearchThumbs[item.url] ? fallbackThumbDataUri() : item.url}
+                      src={
+                        brokenSearchThumbs[item.url]
+                          ? fallbackThumbDataUri()
+                          : item.url
+                      }
                       alt="Търсене dyno report"
                       loading="lazy"
                       onError={() => {
@@ -119,14 +129,25 @@ export default function SearchPanel({
                   </a>
                   <div className="search-result-meta">
                     <p>{item.fileName || "unnamed-file"}</p>
-                    <span>provider: {item.provider === "imgbb" ? "imgbb" : "main"}</span>
+                    <span>
+                      provider: {item.provider === "imgbb" ? "imgbb" : "main"}
+                    </span>
                     <span>{formatRecentUploadTime(item.createdAt)}</span>
                   </div>
                   <div className="search-result-actions">
-                    <button type="button" title="Copy URL" onClick={() => onCopyUrl(item.url)}>
+                    <button
+                      type="button"
+                      title="Copy URL"
+                      onClick={() => onCopyUrl(item.url)}
+                    >
                       <Copy aria-hidden="true" />
                     </button>
-                    <a href={item.url} target="_blank" rel="noreferrer" title="Open file">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open file"
+                    >
                       <Eye aria-hidden="true" />
                     </a>
                   </div>
@@ -135,10 +156,18 @@ export default function SearchPanel({
             </div>
 
             <div className="search-pagination">
-              <button type="button" onClick={onPagePrev} disabled={safeCurrentPage <= 1}>
+              <button
+                type="button"
+                onClick={onPagePrev}
+                disabled={safeCurrentPage <= 1}
+              >
                 Prev
               </button>
-              <button type="button" onClick={onPageNext} disabled={safeCurrentPage >= totalSearchPages}>
+              <button
+                type="button"
+                onClick={onPageNext}
+                disabled={safeCurrentPage >= totalSearchPages}
+              >
                 Next
               </button>
               <span>

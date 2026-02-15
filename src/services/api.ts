@@ -20,7 +20,10 @@ async function safeReadResponseText(response: Response): Promise<string> {
   }
 }
 
-async function parseJsonOrThrow(response: Response, context: string): Promise<unknown> {
+async function parseJsonOrThrow(
+  response: Response,
+  context: string,
+): Promise<unknown> {
   try {
     return await response.json();
   } catch {
@@ -169,7 +172,10 @@ async function blobToBase64Payload(blob: Blob): Promise<string> {
   });
 }
 
-export async function searchUploads(query: string, apiKey: string): Promise<RecentUpload[]> {
+export async function searchUploads(
+  query: string,
+  apiKey: string,
+): Promise<RecentUpload[]> {
   const safeQuery = ensureNonEmpty(query, "search query");
   const safeApiKey = ensureNonEmpty(apiKey, "API key");
 
@@ -179,12 +185,15 @@ export async function searchUploads(query: string, apiKey: string): Promise<Rece
     filename: `*${safeQuery}*`,
   });
 
-  const response = await fetch(`${PRIMARY_API_BASE}/search?${params.toString()}`, {
-    method: "GET",
-    headers: {
-      "X-API-Key": safeApiKey,
+  const response = await fetch(
+    `${PRIMARY_API_BASE}/search?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        "X-API-Key": safeApiKey,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     const body = await safeReadResponseText(response);

@@ -1,9 +1,26 @@
-import { useEffect, useRef, useState, type CSSProperties, type ChangeEvent } from "react";
-import { Check, Copy, Download, RotateCcw, Settings, Upload, X } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ChangeEvent,
+} from "react";
+import {
+  Check,
+  Copy,
+  Download,
+  RotateCcw,
+  Settings,
+  Upload,
+  X,
+} from "lucide-react";
 import appPackage from "../package.json";
 import logo from "./assets/logo.png";
 import DynoGraph from "./components/DynoGraph";
-import { InlineEditable, InlineEditableSelect } from "./components/InlineEditable";
+import {
+  InlineEditable,
+  InlineEditableSelect,
+} from "./components/InlineEditable";
 import RpmGauge from "./components/RpmGauge";
 import SearchPanel from "./components/SearchPanel";
 import { useToast } from "./hooks/useToast";
@@ -82,7 +99,6 @@ const METRIC_BOUNDS: Record<MetricKey, SliderItem> = sliderConfig.reduce(
   },
   {} as Record<MetricKey, SliderItem>,
 );
-
 
 function formatRecentUploadTime(createdAt: number): string {
   const timestamp = Number(createdAt);
@@ -222,7 +238,9 @@ function App() {
     return toUploadProvider(stored);
   });
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
-  const [providerDraft, setProviderDraft] = useState<UploadProvider>(UPLOAD_PROVIDERS.primary);
+  const [providerDraft, setProviderDraft] = useState<UploadProvider>(
+    UPLOAD_PROVIDERS.primary,
+  );
   const [apiKeyDraft, setApiKeyDraft] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
@@ -255,8 +273,7 @@ function App() {
   )} psi / ${data.afr.toFixed(1)}\nMax RPM: ${data.rpm}\nВъншна темп: ${data.extTemp}\nВлажност: ${data.humidity}%\nКорекционен фактор: ${data.correctionFactor}\nID: ${docMeta.unixId}\nОператор: ${data.operator}\nСобственик: ${data.owner}\nСъздаден: ${docMeta.createdAt}\nБележки: ${data.mechanicNotes}`;
 
   const updateMetric =
-    (key: MetricKey) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (key: MetricKey) => (event: ChangeEvent<HTMLInputElement>) => {
       const raw = Number(event.target.value);
       setData((prev) => ({
         ...prev,
@@ -264,17 +281,18 @@ function App() {
       }));
     };
 
-  const updateMetricInput = (item: SliderItem) => (event: ChangeEvent<HTMLInputElement>) => {
-    const rawText = event.target.value;
-    const parsed = Number(rawText);
-    if (!Number.isFinite(parsed)) {
-      return;
-    }
+  const updateMetricInput =
+    (item: SliderItem) => (event: ChangeEvent<HTMLInputElement>) => {
+      const rawText = event.target.value;
+      const parsed = Number(rawText);
+      if (!Number.isFinite(parsed)) {
+        return;
+      }
 
-    const clamped = Math.max(item.min, Math.min(item.max, parsed));
-    const nextValue = normalizeMetricValue(item.key, clamped);
-    setData((prev) => ({ ...prev, [item.key]: nextValue }));
-  };
+      const clamped = Math.max(item.min, Math.min(item.max, parsed));
+      const nextValue = normalizeMetricValue(item.key, clamped);
+      setData((prev) => ({ ...prev, [item.key]: nextValue }));
+    };
 
   const applyInlineUpdate = (key: keyof DynoData, rawValue: string) => {
     if (isMetricKey(key)) {
@@ -354,7 +372,10 @@ function App() {
 
   const handleCopyResultUrl = async (url: string) => {
     const copied = await copyUrlForEmbedding(url);
-    showToast(copied ? "URL е копиран." : "Неуспешно копиране на URL.", copied ? "success" : "error");
+    showToast(
+      copied ? "URL е копиран." : "Неуспешно копиране на URL.",
+      copied ? "success" : "error",
+    );
   };
 
   const handleDownload = async () => {
@@ -402,7 +423,9 @@ function App() {
 
     setIsCopying(true);
     const clipboard = navigator?.clipboard;
-    const ClipboardCtor = window?.ClipboardItem as typeof ClipboardItem | undefined;
+    const ClipboardCtor = window?.ClipboardItem as
+      | typeof ClipboardItem
+      | undefined;
 
     try {
       try {
@@ -723,9 +746,13 @@ function App() {
               hasSearched={hasSearched}
               safeCurrentPage={safeCurrentPage}
               totalSearchPages={totalSearchPages}
-              onPagePrev={() => setCurrentSearchPage((prev) => Math.max(1, prev - 1))}
+              onPagePrev={() =>
+                setCurrentSearchPage((prev) => Math.max(1, prev - 1))
+              }
               onPageNext={() =>
-                setCurrentSearchPage((prev) => Math.min(totalSearchPages, prev + 1))
+                setCurrentSearchPage((prev) =>
+                  Math.min(totalSearchPages, prev + 1),
+                )
               }
               onCopyUrl={handleCopyResultUrl}
               formatRecentUploadTime={formatRecentUploadTime}
@@ -870,7 +897,9 @@ function App() {
                 <strong>
                   <InlineEditable
                     value={data.correctionFactor}
-                    onCommit={(next) => applyInlineUpdate("correctionFactor", next)}
+                    onCommit={(next) =>
+                      applyInlineUpdate("correctionFactor", next)
+                    }
                   />
                 </strong>
               </div>
@@ -890,9 +919,7 @@ function App() {
             </p>
           </div>
 
-          <div className="signature">
-            {data.operator}
-          </div>
+          <div className="signature">{data.operator}</div>
         </section>
       </section>
 
@@ -925,7 +952,12 @@ function App() {
           <span>Copy</span>
           <Copy aria-hidden="true" />
         </button>
-        <button type="button" title="Upload" onClick={handleUpload} disabled={isUploading}>
+        <button
+          type="button"
+          title="Upload"
+          onClick={handleUpload}
+          disabled={isUploading}
+        >
           <span>Upload</span>
           <Upload aria-hidden="true" />
         </button>

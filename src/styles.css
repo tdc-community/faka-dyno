@@ -30,8 +30,16 @@ body {
   font-family: "Montserrat", sans-serif;
   font-size: 15px;
   background:
-    radial-gradient(1000px 460px at -8% -12%, rgba(230, 30, 30, 0.13), transparent),
-    radial-gradient(1200px 500px at 110% 108%, rgba(230, 30, 30, 0.1), transparent),
+    radial-gradient(
+      1000px 460px at -8% -12%,
+      rgba(230, 30, 30, 0.13),
+      transparent
+    ),
+    radial-gradient(
+      1200px 500px at 110% 108%,
+      rgba(230, 30, 30, 0.1),
+      transparent
+    ),
     linear-gradient(150deg, #090b10, var(--bg-main) 52%, var(--bg-main-2));
   overflow: hidden;
 }
@@ -64,8 +72,11 @@ body {
 .form-panel,
 .preview-panel {
   border: 1px solid var(--line-soft);
-  background:
-    linear-gradient(160deg, rgba(8, 11, 17, 0.98), rgba(17, 22, 33, 0.97));
+  background: linear-gradient(
+    160deg,
+    rgba(8, 11, 17, 0.98),
+    rgba(17, 22, 33, 0.97)
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
@@ -130,7 +141,11 @@ body {
 .preview-panel::-webkit-scrollbar-thumb,
 .search-results-list::-webkit-scrollbar-thumb,
 .recent-upload-grid::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(230, 30, 30, 0.65), rgba(159, 16, 29, 0.75));
+  background: linear-gradient(
+    180deg,
+    rgba(230, 30, 30, 0.65),
+    rgba(159, 16, 29, 0.75)
+  );
   border-radius: 8px;
   border: 1px solid rgba(255, 145, 158, 0.22);
 }
@@ -139,14 +154,22 @@ body {
 .preview-panel::-webkit-scrollbar-thumb:hover,
 .search-results-list::-webkit-scrollbar-thumb:hover,
 .recent-upload-grid::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(244, 63, 94, 0.8), rgba(159, 16, 29, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(244, 63, 94, 0.8),
+    rgba(159, 16, 29, 0.9)
+  );
 }
 
 .section-block {
   margin-top: 0;
   border: 1px solid var(--line-neutral);
   border-radius: 6px;
-  background: linear-gradient(180deg, rgba(13, 17, 25, 0.8), rgba(9, 12, 18, 0.86));
+  background: linear-gradient(
+    180deg,
+    rgba(13, 17, 25, 0.8),
+    rgba(9, 12, 18, 0.86)
+  );
   padding: 10px;
 }
 
@@ -189,7 +212,10 @@ select {
   color: var(--text-main);
   padding: 8px 9px;
   font-size: 0.82rem;
-  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
 }
 
 input[type="text"]:focus,
@@ -226,7 +252,11 @@ select:focus,
 .sliders {
   border: 1px solid rgba(230, 30, 30, 0.18);
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(9, 12, 18, 0.74), rgba(7, 10, 15, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(9, 12, 18, 0.74),
+    rgba(7, 10, 15, 0.9)
+  );
   padding: 10px;
 }
 
@@ -239,7 +269,11 @@ select:focus,
   padding: 6px 7px;
   border: 1px solid rgba(153, 168, 198, 0.16);
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(20, 26, 38, 0.7), rgba(13, 18, 28, 0.82));
+  background: linear-gradient(
+    180deg,
+    rgba(20, 26, 38, 0.7),
+    rgba(13, 18, 28, 0.82)
+  );
 }
 
 .slider-row:last-child {
@@ -257,7 +291,11 @@ select:focus,
   width: 74px;
   border: 1px solid rgba(220, 84, 97, 0.24);
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(8, 10, 15, 0.95), rgba(8, 10, 15, 0.82));
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 15, 0.95),
+    rgba(8, 10, 15, 0.82)
+  );
   color: var(--text-main);
   text-align: right;
   padding: 6px 8px;
@@ -274,7 +312,11 @@ select:focus,
 .search-row button {
   border: 1px solid rgba(255, 145, 158, 0.32);
   border-radius: 4px;
-  background: linear-gradient(160deg, rgba(27, 35, 51, 0.96), rgba(15, 21, 33, 0.96));
+  background: linear-gradient(
+    160deg,
+    rgba(27, 35, 51, 0.96),
+    rgba(15, 21, 33, 0.96)
+  );
   color: #dce6f8;
   font-size: 0.74rem;
   font-weight: 700;
@@ -282,12 +324,19 @@ select:focus,
   text-transform: uppercase;
   padding: 0 10px;
   cursor: pointer;
-  transition: border-color 140ms ease, transform 130ms ease, filter 140ms ease;
+  transition:
+    border-color 140ms ease,
+    transform 130ms ease,
+    filter 140ms ease;
 }
 
 .search-row .search-reset-btn {
   border-color: rgba(153, 168, 198, 0.28);
-  background: linear-gradient(160deg, rgba(27, 35, 51, 0.82), rgba(15, 21, 33, 0.82));
+  background: linear-gradient(
+    160deg,
+    rgba(27, 35, 51, 0.82),
+    rgba(15, 21, 33, 0.82)
+  );
   color: #cfd9eb;
 }
 
@@ -400,7 +449,10 @@ select:focus,
   justify-content: center;
   cursor: pointer;
   text-decoration: none;
-  transition: border-color 130ms ease, transform 130ms ease, filter 140ms ease;
+  transition:
+    border-color 130ms ease,
+    transform 130ms ease,
+    filter 140ms ease;
 }
 
 .search-result-actions button:hover,
@@ -522,7 +574,9 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 130ms ease, filter 140ms ease;
+  transition:
+    transform 130ms ease,
+    filter 140ms ease;
 }
 
 .utility-actions button:hover:not(:disabled),
@@ -578,7 +632,11 @@ input[type="range"]::-moz-range-thumb {
   height: 46px;
   border-radius: 12px;
   border: 1px solid rgba(153, 168, 198, 0.3);
-  background: linear-gradient(165deg, rgba(24, 31, 45, 0.96), rgba(13, 18, 28, 0.96));
+  background: linear-gradient(
+    165deg,
+    rgba(24, 31, 45, 0.96),
+    rgba(13, 18, 28, 0.96)
+  );
   color: #e2ebfa;
   display: inline-flex;
   align-items: center;
@@ -590,8 +648,12 @@ input[type="range"]::-moz-range-thumb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 8px 14px rgba(0, 0, 0, 0.3);
-  transition: width 190ms ease, transform 150ms ease, border-color 150ms ease,
-    box-shadow 170ms ease, background 170ms ease;
+  transition:
+    width 190ms ease,
+    transform 150ms ease,
+    border-color 150ms ease,
+    box-shadow 170ms ease,
+    background 170ms ease;
 }
 
 .quick-actions button span {
@@ -604,7 +666,10 @@ input[type="range"]::-moz-range-thumb {
   max-width: 0;
   opacity: 0;
   transform: translateX(6px);
-  transition: max-width 180ms ease, opacity 140ms ease, transform 180ms ease,
+  transition:
+    max-width 180ms ease,
+    opacity 140ms ease,
+    transform 180ms ease,
     margin-right 180ms ease;
 }
 
@@ -629,7 +694,11 @@ input[type="range"]::-moz-range-thumb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
     0 10px 16px rgba(0, 0, 0, 0.35);
-  background: linear-gradient(155deg, rgba(33, 42, 60, 0.96), rgba(18, 26, 40, 0.96));
+  background: linear-gradient(
+    155deg,
+    rgba(33, 42, 60, 0.96),
+    rgba(18, 26, 40, 0.96)
+  );
 }
 
 .quick-actions button:hover:not(:disabled) span {
@@ -667,7 +736,11 @@ textarea:focus-visible {
 
 .inline-editable-display {
   border: 1px solid transparent;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0)
+  );
   color: inherit;
   padding: 1px 6px;
   margin: 0;
@@ -676,7 +749,10 @@ textarea:focus-visible {
   line-height: inherit;
   cursor: text;
   text-align: left;
-  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .inline-notes-display {
@@ -686,14 +762,22 @@ textarea:focus-visible {
 
 .inline-editable-display:hover {
   border-color: rgba(230, 30, 30, 0.38);
-  background: linear-gradient(180deg, rgba(230, 30, 30, 0.13), rgba(230, 30, 30, 0.05));
+  background: linear-gradient(
+    180deg,
+    rgba(230, 30, 30, 0.13),
+    rgba(230, 30, 30, 0.05)
+  );
   box-shadow: inset 0 0 0 1px rgba(255, 125, 141, 0.16);
 }
 
 .inline-editable-input {
   border: 1px solid rgba(230, 30, 30, 0.44);
   border-radius: 4px;
-  background: linear-gradient(180deg, rgba(7, 10, 15, 0.95), rgba(7, 10, 15, 0.88));
+  background: linear-gradient(
+    180deg,
+    rgba(7, 10, 15, 0.95),
+    rgba(7, 10, 15, 0.88)
+  );
   color: inherit;
   font: inherit;
   line-height: inherit;
@@ -917,7 +1001,11 @@ textarea:focus-visible {
   border: 1px solid rgba(230, 30, 30, 0.2);
   border-radius: 4px;
   padding: 8px;
-  background: linear-gradient(180deg, rgba(30, 37, 47, 0.86), rgba(16, 20, 28, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(30, 37, 47, 0.86),
+    rgba(16, 20, 28, 0.9)
+  );
 }
 
 .stat-row p {
@@ -1227,7 +1315,11 @@ textarea:focus-visible {
 .api-modal {
   width: min(520px, calc(100vw - 30px));
   border-radius: 6px;
-  background: linear-gradient(160deg, rgba(10, 13, 20, 0.98), rgba(19, 24, 36, 0.98));
+  background: linear-gradient(
+    160deg,
+    rgba(10, 13, 20, 0.98),
+    rgba(19, 24, 36, 0.98)
+  );
   padding: 14px;
   box-shadow: 0 24px 44px rgba(0, 0, 0, 0.5);
 }
@@ -1266,7 +1358,11 @@ textarea:focus-visible {
 .modal-actions button {
   border: 1px solid rgba(153, 168, 198, 0.34);
   border-radius: 4px;
-  background: linear-gradient(160deg, rgba(27, 35, 51, 0.96), rgba(15, 21, 33, 0.96));
+  background: linear-gradient(
+    160deg,
+    rgba(27, 35, 51, 0.96),
+    rgba(15, 21, 33, 0.96)
+  );
   color: #dce6f8;
   padding: 6px 10px;
   font-size: 0.78rem;
@@ -1274,14 +1370,21 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: border-color 140ms ease, background 160ms ease, color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background 160ms ease,
+    color 140ms ease;
 }
 
 .modal-actions button:hover:not(:disabled) {
   transform: none;
   filter: none;
   border-color: rgba(255, 122, 138, 0.52);
-  background: linear-gradient(160deg, rgba(34, 44, 62, 0.97), rgba(20, 29, 44, 0.97));
+  background: linear-gradient(
+    160deg,
+    rgba(34, 44, 62, 0.97),
+    rgba(20, 29, 44, 0.97)
+  );
 }
 
 .toast {
@@ -1359,7 +1462,12 @@ textarea:focus-visible {
   width: min(460px, 86vw);
   height: min(190px, 32vw);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(230, 30, 30, 0.45) 0%, rgba(230, 30, 30, 0.12) 45%, rgba(230, 30, 30, 0) 75%);
+  background: radial-gradient(
+    circle,
+    rgba(230, 30, 30, 0.45) 0%,
+    rgba(230, 30, 30, 0.12) 45%,
+    rgba(230, 30, 30, 0) 75%
+  );
   filter: blur(10px);
   animation: splash-pulse-glow 1500ms ease-in-out infinite;
 }

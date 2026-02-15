@@ -5,7 +5,12 @@ interface RpmGaugeProps {
   redline?: number;
 }
 
-export default function RpmGauge({ rpm, minRpm = 0, maxRpm = 12000, redline = 11000 }: RpmGaugeProps) {
+export default function RpmGauge({
+  rpm,
+  minRpm = 0,
+  maxRpm = 12000,
+  redline = 11000,
+}: RpmGaugeProps) {
   const clamped = Math.max(minRpm, Math.min(maxRpm, rpm));
   const ratio = (clamped - minRpm) / (maxRpm - minRpm || 1);
   const segments = 18;
@@ -22,11 +27,16 @@ export default function RpmGauge({ rpm, minRpm = 0, maxRpm = 12000, redline = 11
           {Array.from({ length: segments }, (_, index) => (
             <span
               key={`rpm-segment-${index}`}
-              className={index >= segments - activeCount ? "segment active" : "segment"}
+              className={
+                index >= segments - activeCount ? "segment active" : "segment"
+              }
             />
           ))}
         </div>
-        <span className="rpm-redline" style={{ bottom: `${redlineRatio * 100}%` }} />
+        <span
+          className="rpm-redline"
+          style={{ bottom: `${redlineRatio * 100}%` }}
+        />
       </div>
       <p className="rpm-gauge-value">{rpm}</p>
       <p className="rpm-gauge-range">
