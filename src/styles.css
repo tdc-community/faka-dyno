@@ -267,7 +267,7 @@ select:focus,
 
 .search-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 8px;
 }
 
@@ -283,6 +283,12 @@ select:focus,
   padding: 0 10px;
   cursor: pointer;
   transition: border-color 140ms ease, transform 130ms ease, filter 140ms ease;
+}
+
+.search-row .search-reset-btn {
+  border-color: rgba(153, 168, 198, 0.28);
+  background: linear-gradient(160deg, rgba(27, 35, 51, 0.82), rgba(15, 21, 33, 0.82));
+  color: #cfd9eb;
 }
 
 .search-row button:hover:not(:disabled) {
@@ -520,8 +526,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .utility-actions button:hover:not(:disabled),
-.recent-clear-btn:hover:not(:disabled),
-.modal-actions button:hover:not(:disabled) {
+.recent-clear-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   filter: brightness(1.08);
 }
@@ -554,6 +559,18 @@ input[type="range"]::-moz-range-thumb {
   gap: 8px;
   padding: 0;
   z-index: 45;
+}
+
+.build-label {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  margin: 0;
+  color: #7f8da7;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .quick-actions button {
@@ -680,7 +697,7 @@ textarea:focus-visible {
   color: inherit;
   font: inherit;
   line-height: inherit;
-  padding: 3px 7px;
+  padding: 1px 6px;
   min-width: 52px;
   box-shadow:
     0 6px 14px rgba(0, 0, 0, 0.35),
@@ -1210,8 +1227,8 @@ textarea:focus-visible {
 .api-modal {
   width: min(520px, calc(100vw - 30px));
   border-radius: 6px;
-  background: linear-gradient(160deg, rgba(10, 12, 16, 0.97), rgba(21, 24, 32, 0.97));
-  padding: 12px;
+  background: linear-gradient(160deg, rgba(10, 13, 20, 0.98), rgba(19, 24, 36, 0.98));
+  padding: 14px;
   box-shadow: 0 24px 44px rgba(0, 0, 0, 0.5);
 }
 
@@ -1220,8 +1237,23 @@ textarea:focus-visible {
 }
 
 .api-modal h3 {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   font-size: 0.92rem;
+}
+
+.api-modal label {
+  gap: 8px;
+  font-size: 0.74rem;
+}
+
+.api-modal label + label {
+  margin-top: 12px;
+}
+
+.api-modal input,
+.api-modal select {
+  padding: 10px 11px;
+  font-size: 0.84rem;
 }
 
 .modal-actions {
@@ -1232,22 +1264,30 @@ textarea:focus-visible {
 }
 
 .modal-actions button {
-  border: 1px solid rgba(255, 145, 158, 0.45);
+  border: 1px solid rgba(153, 168, 198, 0.34);
   border-radius: 4px;
-  background: linear-gradient(160deg, #d63f4d, #a10f1c 70%);
-  color: #fff;
+  background: linear-gradient(160deg, rgba(27, 35, 51, 0.96), rgba(15, 21, 33, 0.96));
+  color: #dce6f8;
   padding: 6px 10px;
   font-size: 0.78rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: border-color 140ms ease, background 160ms ease, color 140ms ease;
+}
+
+.modal-actions button:hover:not(:disabled) {
+  transform: none;
+  filter: none;
+  border-color: rgba(255, 122, 138, 0.52);
+  background: linear-gradient(160deg, rgba(34, 44, 62, 0.97), rgba(20, 29, 44, 0.97));
 }
 
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 12px;
+  top: 12px;
   transform: translateX(-50%);
   border-radius: 4px;
   padding: 7px 10px;
@@ -1412,6 +1452,11 @@ textarea:focus-visible {
     top: 50%;
     width: 142px;
     gap: 6px;
+  }
+
+  .build-label {
+    bottom: 6px;
+    font-size: 0.62rem;
   }
 
   .quick-actions button {

@@ -1,20 +1,35 @@
 import { useEffect, useRef, useState, type CSSProperties, type ChangeEvent } from "react";
-import html2canvas from "html2canvas";
-import { Check, Copy, Download, Eye, RotateCcw, Settings, Upload, X } from "lucide-react";
+import { Check, Copy, Download, RotateCcw, Settings, Upload, X } from "lucide-react";
+import appPackage from "../package.json";
 import logo from "./assets/logo.png";
 import DynoGraph from "./components/DynoGraph";
+import { InlineEditable, InlineEditableSelect } from "./components/InlineEditable";
 import RpmGauge from "./components/RpmGauge";
+import SearchPanel from "./components/SearchPanel";
+import { useToast } from "./hooks/useToast";
+import {
+  getBestCaptureBlob,
+  isValidImageBlob,
+  prepareUploadBlob,
+  renderPreviewBlob,
+} from "./services/capture";
+import { searchUploads, uploadReportImage } from "./services/api";
+import {
+  getPersistedState,
+  getStoredValue,
+  setStoredValue,
+  STORAGE_KEYS,
+} from "./services/storage";
 import type {
   DynoData,
   MetricKey,
-  PersistedState,
   RecentUpload,
   SliderItem,
-  ToastState,
   UploadProvider,
 } from "./types";
 
 const SHOP_NAME = "FAKA PERFORMANCE";
+const APP_BUILD_LABEL = `Build: v${appPackage.version ?? "2.0.0"}`;
 
 const defaults: DynoData = {
   model: "Bravado Banshee 900R",
@@ -43,17 +58,8 @@ const sliderConfig: SliderItem[] = [
 ];
 
 const MECHANIC_NOTES_MAX_LENGTH = 1024;
-const STORAGE_KEY = "faka-dyno-state-v1";
-const API_KEY_STORAGE_KEY = "faka-dyno-api-key";
-const IMGBB_API_KEY_STORAGE_KEY = "faka-dyno-imgbb-api-key";
-const UPLOAD_PROVIDER_STORAGE_KEY = "faka-dyno-upload-provider";
-const SPLASH_LAST_SEEN_KEY = "faka-dyno-splash-last-seen";
-const RECENT_UPLOADS_STORAGE_KEY = "faka-dyno-recent-uploads";
 const SPLASH_SKIP_WINDOW_MS = 4 * 60 * 60 * 1000;
 const EXPORT_WIDTH = 1000;
-const EXPORT_RENDER_SCALE = 2;
-const MAX_RECENT_UPLOADS = 12;
-const PRIMARY_API_BASE = "https://i.webproj.space/fapi";
 const SEARCH_PAGE_SIZE = 7;
 
 const UPLOAD_PROVIDERS: Record<UploadProvider, UploadProvider> = {
@@ -77,180 +83,6 @@ const METRIC_BOUNDS: Record<MetricKey, SliderItem> = sliderConfig.reduce(
   {} as Record<MetricKey, SliderItem>,
 );
 
-const DEFAULT_STORAGE_STATE: PersistedState = {
-  data: defaults,
-  showHp: true,
-  showTq: true,
-};
-
-function getStoredValue(key: string, fallback = ""): string {
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  return window.localStorage.getItem(key) || fallback;
-}
-
-function setStoredValue(key: string, value: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(key, value);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function readRecentUploads(): RecentUpload[] {
-  const raw = getStoredValue(RECENT_UPLOADS_STORAGE_KEY, "[]");
-  const parsed = safeParse<unknown[]>(raw, []);
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed
-    .map((item): RecentUpload | null => {
-      if (typeof item === "string") {
-        return { url: item, provider: "unknown", createdAt: Date.now(), fileName: "" };
-      }
-      if (!isRecord(item) || typeof item.url !== "string") {
-        return null;
-      }
-      return {
-        url: item.url,
-        provider:
-          item.provider === UPLOAD_PROVIDERS.primary || item.provider === UPLOAD_PROVIDERS.imgbb
-            ? (item.provider as UploadProvider)
-            : "unknown",
-        createdAt: Number(item.createdAt) || Date.now(),
-        fileName: typeof item.fileName === "string" ? item.fileName : "",
-      };
-    })
-    .filter((item): item is RecentUpload => Boolean(item))
-    .slice(0, MAX_RECENT_UPLOADS);
-}
-
-function mergeRecentUploads(existing: RecentUpload[], incoming: RecentUpload[]): RecentUpload[] {
-  const merged = [...incoming, ...existing];
-  const dedup: RecentUpload[] = [];
-  const seen = new Set<string>();
-
-  for (const item of merged) {
-    if (!item || !item.url || seen.has(item.url)) {
-      continue;
-    }
-    seen.add(item.url);
-    dedup.push(item);
-    if (dedup.length >= MAX_RECENT_UPLOADS) {
-      break;
-    }
-  }
-
-  return dedup;
-}
-
-function makeAbsoluteUrl(value: unknown): string {
-  if (!value || typeof value !== "string") {
-    return "";
-  }
-
-  const raw = value.trim();
-  if (!raw) {
-    return "";
-  }
-
-  try {
-    return new URL(raw, `${PRIMARY_API_BASE}/`).href;
-  } catch {
-    return "";
-  }
-}
-
-function deriveFileName(url: string, explicitName = ""): string {
-  if (explicitName && typeof explicitName === "string") {
-    return explicitName;
-  }
-
-  try {
-    const pathname = new URL(url).pathname;
-    const segments = pathname.split("/").filter(Boolean);
-    return segments.at(-1) || "";
-  } catch {
-    return "";
-  }
-}
-
-function normalizeApiSearchResults(payload: unknown): RecentUpload[] {
-  const source = isRecord(payload) ? payload : {};
-  const sourceData = isRecord(source.data) ? source.data : {};
-  const collections = [
-    Array.isArray(payload) ? payload : null,
-    Array.isArray(source.files) ? source.files : null,
-    Array.isArray(source.items) ? source.items : null,
-    Array.isArray(source.results) ? source.results : null,
-    Array.isArray(source.data) ? source.data : null,
-    Array.isArray(sourceData.files) ? sourceData.files : null,
-    Array.isArray(sourceData.items) ? sourceData.items : null,
-    Array.isArray(sourceData.results) ? sourceData.results : null,
-  ].filter(Boolean);
-
-  const flattened = collections.flat() as unknown[];
-  const seen = new Set<string>();
-  const mapped: RecentUpload[] = [];
-
-  for (const item of flattened) {
-    const entry = isRecord(item) ? item : null;
-    const rawUrl =
-      typeof item === "string"
-        ? item
-        : typeof entry?.url === "string"
-          ? entry.url
-          : typeof entry?.fileUrl === "string"
-            ? entry.fileUrl
-            : typeof entry?.imageUrl === "string"
-              ? entry.imageUrl
-              : typeof entry?.display_url === "string"
-                ? entry.display_url
-                : typeof entry?.path === "string"
-                  ? entry.path
-                  : typeof entry?.link === "string"
-                    ? entry.link
-                    : "";
-    const url = makeAbsoluteUrl(rawUrl);
-    if (!url || seen.has(url)) {
-      continue;
-    }
-
-    seen.add(url);
-    mapped.push({
-      url,
-      provider: UPLOAD_PROVIDERS.primary,
-      createdAt:
-        Number(entry?.createdAt) ||
-        Number(entry?.uploadedAt) ||
-        Number(entry?.timestamp) ||
-        Date.now(),
-      fileName: deriveFileName(
-        url,
-        typeof entry?.fileName === "string"
-          ? entry.fileName
-          : typeof entry?.filename === "string"
-            ? entry.filename
-            : typeof entry?.name === "string"
-              ? entry.name
-              : "",
-      ),
-    });
-
-    if (mapped.length >= 200) {
-      break;
-    }
-  }
-
-  return mapped;
-}
 
 function formatRecentUploadTime(createdAt: number): string {
   const timestamp = Number(createdAt);
@@ -265,60 +97,6 @@ function formatRecentUploadTime(createdAt: number): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function withTrailingDot(message: string): string {
-  const trimmed = message.trim();
-  if (!trimmed) {
-    return ".";
-  }
-
-  return /[.!?…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
-}
-
-function extractUploadedUrl(result: unknown, provider: UploadProvider): string {
-  if (!isRecord(result)) {
-    return "";
-  }
-
-  if (provider === UPLOAD_PROVIDERS.imgbb) {
-    const data = isRecord(result.data) ? result.data : {};
-    return typeof data.url === "string"
-      ? data.url
-      : typeof data.display_url === "string"
-        ? data.display_url
-        : typeof data.url_viewer === "string"
-          ? data.url_viewer
-          : "";
-  }
-
-  return typeof result.url === "string" ? result.url : "";
-}
-
-function safeParse<T>(json: string, fallback: T): T {
-  try {
-    return JSON.parse(json);
-  } catch {
-    return fallback;
-  }
-}
-
-function getPersistedState(): PersistedState {
-  if (typeof window === "undefined") {
-    return DEFAULT_STORAGE_STATE;
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return DEFAULT_STORAGE_STATE;
-  }
-
-  const parsed = safeParse(raw, DEFAULT_STORAGE_STATE);
-  return {
-    data: { ...defaults, ...(parsed.data || {}) },
-    showHp: typeof parsed.showHp === "boolean" ? parsed.showHp : true,
-    showTq: typeof parsed.showTq === "boolean" ? parsed.showTq : true,
-  };
 }
 
 function sanitizeForFile(value: string): string {
@@ -348,36 +126,6 @@ function buildReportFileName(
   const safeModel = sanitizeForFile(model);
   const safeRegNumber = sanitizeForFile(plate);
   return `faka-dyno-${safeModel}-${safeRegNumber}-${unixTimestamp}.png`;
-}
-
-async function waitForPreviewReady(previewElement: HTMLElement | null) {
-  if (!previewElement) {
-    return;
-  }
-
-  if (document.fonts?.ready) {
-    await document.fonts.ready;
-  }
-
-  const images = Array.from(previewElement.querySelectorAll<HTMLImageElement>("img"));
-  await Promise.all(
-    images.map((img) => {
-      if (img.complete) {
-        return Promise.resolve();
-      }
-
-      return new Promise((resolve) => {
-        img.addEventListener("load", resolve, { once: true });
-        img.addEventListener("error", resolve, { once: true });
-      });
-    }),
-  );
-
-  await new Promise((resolve) => window.requestAnimationFrame(resolve));
-}
-
-function isValidImageBlob(blob: Blob | null): blob is Blob {
-  return Boolean(blob && blob.type === "image/png" && blob.size > 20000);
 }
 
 function isDecimalMetric(key: MetricKey): boolean {
@@ -412,18 +160,6 @@ function maskApiKey(value: string): string {
   const tail = value.slice(-4);
   const stars = "*".repeat(Math.min(12, Math.max(4, value.length - 8)));
   return `${head}${stars}${tail}`;
-}
-
-function blobToBase64Payload(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result || "");
-      resolve(text.includes(",") ? text.split(",")[1] : text);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }
 
 async function copyUrlForEmbedding(url: string): Promise<boolean> {
@@ -461,223 +197,13 @@ async function copyUrlForEmbedding(url: string): Promise<boolean> {
   return false;
 }
 
-interface InlineEditableProps {
-  value: string;
-  onCommit: (value: string) => void;
-  className?: string;
-  multiline?: boolean;
-  maxLength?: number;
-}
-
-interface InlineEditableSelectProps {
-  value: string;
-  options: string[];
-  onCommit: (value: string) => void;
-  className?: string;
-}
-
-function InlineEditable({
-  value,
-  onCommit,
-  className = "",
-  multiline = false,
-  maxLength,
-}: InlineEditableProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    if (!editing) {
-      setDraft(value);
-    }
-  }, [value, editing]);
-
-  const finish = () => {
-    setEditing(false);
-    if (draft !== value) {
-      onCommit(draft);
-    }
-  };
-
-  const cancel = () => {
-    setEditing(false);
-    setDraft(value);
-  };
-
-  if (editing) {
-    if (multiline) {
-      return (
-        <textarea
-          className={`inline-editable-input inline-editable-textarea ${className}`.trim()}
-          value={draft}
-          maxLength={maxLength}
-          autoFocus
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={finish}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              cancel();
-            }
-            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-              event.preventDefault();
-              finish();
-            }
-          }}
-        />
-      );
-    }
-
-    return (
-      <input
-        type="text"
-        className={`inline-editable-input ${className}`.trim()}
-        value={draft}
-        maxLength={maxLength}
-        autoFocus
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={finish}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            finish();
-          }
-          if (event.key === "Escape") {
-            event.preventDefault();
-            cancel();
-          }
-        }}
-      />
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`inline-editable-display ${className}`.trim()}
-      onClick={() => setEditing(true)}
-      title="Click to edit"
-    >
-      {value || "-"}
-    </button>
-  );
-}
-
-function InlineEditableSelect({
-  value,
-  options,
-  onCommit,
-  className = "",
-}: InlineEditableSelectProps) {
-  const [editing, setEditing] = useState(false);
-
-  if (editing) {
-    return (
-      <select
-        className={`inline-editable-input inline-editable-select ${className}`.trim()}
-        value={value}
-        autoFocus
-        onChange={(event) => {
-          onCommit(event.target.value);
-          setEditing(false);
-        }}
-        onBlur={() => setEditing(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            setEditing(false);
-          }
-        }}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`inline-editable-display ${className}`.trim()}
-      onClick={() => setEditing(true)}
-      title="Click to edit"
-    >
-      {value || "-"}
-    </button>
-  );
-}
-
-async function prepareUploadBlob(blob: Blob | null, maxDimension = 1920) {
-  if (!blob) {
-    return null;
-  }
-
-  if (typeof window === "undefined") {
-    return blob;
-  }
-
-  let objectUrl: string | null = null;
-
-  try {
-    objectUrl = URL.createObjectURL(blob);
-    const imageUrl = objectUrl;
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = imageUrl;
-    });
-
-    const sourceWidth = image.naturalWidth || image.width;
-    const sourceHeight = image.naturalHeight || image.height;
-    const longestSide = Math.max(sourceWidth, sourceHeight);
-
-    if (longestSide <= maxDimension) {
-      return blob;
-    }
-
-    const scale = maxDimension / longestSide;
-    const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
-    const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      URL.revokeObjectURL(objectUrl);
-      return blob;
-    }
-
-    ctx.fillStyle = "#101624";
-    ctx.fillRect(0, 0, targetWidth, targetHeight);
-    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-
-    const resized = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((nextBlob) => resolve(nextBlob), "image/png", 1);
-    });
-
-    return resized || blob;
-  } catch {
-    return blob;
-  } finally {
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
-    }
-  }
-}
-
 function App() {
-  const [persistedState] = useState(getPersistedState);
+  const [persistedState] = useState(() => getPersistedState(defaults));
   const [data, setData] = useState(persistedState.data);
   const [showHp, setShowHp] = useState(persistedState.showHp);
   const [showTq, setShowTq] = useState(persistedState.showTq);
   const [hasStarted, setHasStarted] = useState(() => {
-    const lastSeenRaw = getStoredValue(SPLASH_LAST_SEEN_KEY, "0");
+    const lastSeenRaw = getStoredValue(STORAGE_KEYS.splashLastSeen, "0");
     const lastSeen = Number(lastSeenRaw || 0);
     if (!Number.isFinite(lastSeen) || lastSeen <= 0) {
       return false;
@@ -686,13 +212,13 @@ function App() {
     return Date.now() - lastSeen < SPLASH_SKIP_WINDOW_MS;
   });
   const [mainApiKey, setMainApiKey] = useState(() =>
-    getStoredValue(API_KEY_STORAGE_KEY),
+    getStoredValue(STORAGE_KEYS.apiKey),
   );
   const [imgbbApiKey, setImgbbApiKey] = useState(() =>
-    getStoredValue(IMGBB_API_KEY_STORAGE_KEY),
+    getStoredValue(STORAGE_KEYS.imgbbApiKey),
   );
   const [uploadProvider, setUploadProvider] = useState<UploadProvider>(() => {
-    const stored = getStoredValue(UPLOAD_PROVIDER_STORAGE_KEY);
+    const stored = getStoredValue(STORAGE_KEYS.uploadProvider);
     return toUploadProvider(stored);
   });
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
@@ -701,15 +227,14 @@ function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [toast, setToast] = useState<ToastState | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<RecentUpload[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [currentSearchPage, setCurrentSearchPage] = useState(1);
-  const toastTimerRef = useRef<number | null>(null);
+  const apiModalRef = useRef<HTMLDivElement | null>(null);
+  const { toast, showToast } = useToast();
   const previewRef = useRef<HTMLElement | null>(null);
-  const searchResultsListRef = useRef<HTMLDivElement | null>(null);
   const [docMeta] = useState(() => {
     const unixId = Math.floor(Date.now() / 1000);
     const createdAt = new Date(unixId * 1000).toLocaleString("bg-BG", {
@@ -777,44 +302,7 @@ function App() {
     setData((prev) => ({ ...prev, [key]: rawValue }));
   };
 
-  const showToast = (message: string, tone: ToastState["tone"] = "info") => {
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-
-    setToast({ message: withTrailingDot(message), tone });
-    toastTimerRef.current = window.setTimeout(() => {
-      setToast(null);
-    }, 2200);
-  };
-
   const handleReset = () => setData(defaults);
-
-  const rememberRecentUpload = (
-    url: string,
-    provider: UploadProvider | "unknown",
-    fileName = "",
-  ) => {
-    if (!url) {
-      return;
-    }
-
-    const normalized = String(url).trim();
-    if (!normalized) {
-      return;
-    }
-
-    const nextItem = {
-      url: normalized,
-      provider,
-      createdAt: Date.now(),
-      fileName,
-    };
-
-    const existing = readRecentUploads();
-    const merged = mergeRecentUploads(existing, [nextItem]);
-    setStoredValue(RECENT_UPLOADS_STORAGE_KEY, JSON.stringify(merged));
-  };
 
   const setSearchOutcome = (items: RecentUpload[]) => {
     setSearchResults(items);
@@ -829,7 +317,7 @@ function App() {
 
     const query = searchQuery.trim();
     if (!query) {
-      showToast("Въведи текст за търсене", "info");
+      showToast("Въведи текст за търсене.", "info");
       return;
     }
 
@@ -841,42 +329,32 @@ function App() {
 
     setIsSearching(true);
     try {
-      const params = new URLSearchParams({
-        q: query,
-        query,
-        filename: `*${query}*`,
-      });
-      const response = await fetch(`${PRIMARY_API_BASE}/search?${params.toString()}`, {
-        method: "GET",
-        headers: {
-          "X-API-Key": mainApiKey,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
-      }
-
-      const result = await response.json().catch(() => null);
-      const normalized = normalizeApiSearchResults(result);
+      const normalized = await searchUploads(query, mainApiKey);
       setSearchOutcome(normalized);
       showToast(
         normalized.length
-          ? `Намерени ${normalized.length} файла`
-          : "Няма съвпадения за това търсене",
+          ? `Намерени ${normalized.length} файла.`
+          : "Няма съвпадения за това търсене.",
         normalized.length ? "success" : "info",
       );
     } catch {
       setSearchOutcome([]);
-      showToast("Грешка при търсене в API", "error");
+      showToast("Грешка при търсене в API.", "error");
     } finally {
       setIsSearching(false);
     }
   };
 
+  const handleResetSearch = () => {
+    setSearchQuery("");
+    setHasSearched(false);
+    setSearchResults([]);
+    setCurrentSearchPage(1);
+  };
+
   const handleCopyResultUrl = async (url: string) => {
     const copied = await copyUrlForEmbedding(url);
-    showToast(copied ? "URL е копиран" : "Неуспешно копиране на URL", copied ? "success" : "error");
+    showToast(copied ? "URL е копиран." : "Неуспешно копиране на URL.", copied ? "success" : "error");
   };
 
   const handleDownload = async () => {
@@ -886,106 +364,36 @@ function App() {
 
     setIsDownloading(true);
     try {
-      const blob = await getBestCaptureBlob();
+      const blob = await getBestCurrentCaptureBlob();
       if (!blob) {
-        showToast("Грешка при генериране на изображение", "error");
+        showToast("Грешка при генериране на изображение.", "error");
         return;
       }
 
       const fileName = buildReportFileName(data.model, data.plate);
 
       downloadBlob(blob, fileName);
-      showToast("Изображението е изтеглено", "success");
+      showToast("Изображението е изтеглено.", "success");
     } catch {
-      showToast("Грешка при генериране на изображение", "error");
+      showToast("Грешка при генериране на изображение.", "error");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const renderPreviewBlob = async (scale = EXPORT_RENDER_SCALE): Promise<Blob | null> => {
-    if (!previewRef.current) {
-      return null;
-    }
-
-    await waitForPreviewReady(previewRef.current);
-
-    const target = previewRef.current;
-    const exportWidth = EXPORT_WIDTH;
-    let exportHeight = 0;
-
-    let canvas;
-    try {
-      canvas = await html2canvas(target, {
-        scale,
-        useCORS: true,
-        backgroundColor: "#101624",
-        imageTimeout: 0,
-        removeContainer: true,
-        logging: false,
-        windowWidth: exportWidth,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          clonedDoc.documentElement.classList.add("capture-mode");
-          const clonedPreview = clonedDoc.getElementById("report-preview");
-          if (clonedPreview) {
-            clonedPreview.style.position = "fixed";
-            clonedPreview.style.left = "0";
-            clonedPreview.style.top = "0";
-            clonedPreview.style.margin = "0";
-            clonedPreview.style.width = `${exportWidth}px`;
-            clonedPreview.style.maxWidth = `${exportWidth}px`;
-            clonedPreview.style.minWidth = `${exportWidth}px`;
-            clonedPreview.style.height = "auto";
-            clonedPreview.style.maxHeight = "none";
-            clonedPreview.style.minHeight = "0";
-            clonedPreview.style.overflow = "visible";
-            clonedPreview.style.transform = "none";
-
-            exportHeight = Math.max(
-              1,
-              Math.ceil(
-                clonedPreview.scrollHeight || clonedPreview.clientHeight,
-              ),
-            );
-            clonedPreview.style.height = `${exportHeight}px`;
-          }
-        },
-      });
-    } catch {
-      return null;
-    }
-
-    const outputWidth = exportWidth;
-    const outputHeight = Math.max(
-      1,
-      exportHeight ||
-        Math.round((canvas.height / Math.max(1, canvas.width)) * outputWidth),
-    );
-
-    const outputCanvas = document.createElement("canvas");
-    outputCanvas.width = outputWidth;
-    outputCanvas.height = outputHeight;
-    const outputCtx = outputCanvas.getContext("2d");
-    if (!outputCtx) {
-      return null;
-    }
-
-    outputCtx.drawImage(canvas, 0, 0, outputWidth, outputHeight);
-
-    return new Promise<Blob | null>((resolve) => {
-      outputCanvas.toBlob((blob) => resolve(blob), "image/png", 1);
+  const renderCurrentPreviewBlob = (scale: number): Promise<Blob | null> =>
+    renderPreviewBlob({
+      previewElement: previewRef.current,
+      exportWidth: EXPORT_WIDTH,
+      scale,
     });
-  };
 
-  const getBestCaptureBlob = async (): Promise<Blob | null> => {
-    let blob = await renderPreviewBlob(4);
-    if (!isValidImageBlob(blob)) {
-      blob = await renderPreviewBlob(3);
-    }
-    return isValidImageBlob(blob) ? blob : null;
-  };
+  const getBestCurrentCaptureBlob = (): Promise<Blob | null> =>
+    getBestCaptureBlob({
+      previewElement: previewRef.current,
+      exportWidth: EXPORT_WIDTH,
+      preferredScales: [4, 3],
+    });
 
   const handleCopy = async () => {
     if (isCopying) {
@@ -999,10 +407,10 @@ function App() {
     try {
       try {
         if (clipboard?.write && ClipboardCtor) {
-          const blob = await getBestCaptureBlob();
+          const blob = await getBestCurrentCaptureBlob();
           if (blob) {
             await clipboard.write([new ClipboardCtor({ "image/png": blob })]);
-            showToast("Изображението е копирано", "success");
+            showToast("Изображението е копирано.", "success");
             return;
           }
         }
@@ -1013,21 +421,21 @@ function App() {
       try {
         if (clipboard?.writeText) {
           await clipboard.writeText(summary);
-          showToast("Копирани са текстовите данни", "info");
+          showToast("Копирани са текстовите данни.", "info");
           return;
         }
       } catch {
         // Final fallback below
       }
 
-      const blob = await renderPreviewBlob(3);
+      const blob = await renderCurrentPreviewBlob(3);
       if (isValidImageBlob(blob)) {
         downloadBlob(blob, "faka-dyno-copy-fallback.png");
-        showToast("Clipboard е блокиран, изтеглен е fallback файл", "info");
+        showToast("Clipboard е блокиран, изтеглен е fallback файл.", "info");
         return;
       }
 
-      showToast("Неуспешно копиране", "error");
+      showToast("Неуспешно копиране.", "error");
     } finally {
       setIsCopying(false);
     }
@@ -1045,25 +453,25 @@ function App() {
 
   const saveApiKey = () => {
     setUploadProvider(providerDraft);
-    setStoredValue(UPLOAD_PROVIDER_STORAGE_KEY, providerDraft);
+    setStoredValue(STORAGE_KEYS.uploadProvider, providerDraft);
 
     const nextKey = apiKeyDraft.trim();
     if (!nextKey) {
       setIsApiModalOpen(false);
-      showToast("Настройките са запазени", "success");
+      showToast("Настройките са запазени.", "success");
       return;
     }
 
     if (providerDraft === UPLOAD_PROVIDERS.imgbb) {
       setImgbbApiKey(nextKey);
-      setStoredValue(IMGBB_API_KEY_STORAGE_KEY, nextKey);
+      setStoredValue(STORAGE_KEYS.imgbbApiKey, nextKey);
     } else {
       setMainApiKey(nextKey);
-      setStoredValue(API_KEY_STORAGE_KEY, nextKey);
+      setStoredValue(STORAGE_KEYS.apiKey, nextKey);
     }
 
     setIsApiModalOpen(false);
-    showToast("API ключът е запазен", "success");
+    showToast("API ключът е запазен.", "success");
   };
 
   const activeDraftStoredKey =
@@ -1091,70 +499,41 @@ function App() {
     setIsUploading(true);
 
     try {
-      const blob = await getBestCaptureBlob();
+      const blob = await getBestCurrentCaptureBlob();
       if (!blob) {
-        showToast("Грешка при подготовка на файла", "error");
+        showToast("Грешка при подготовка на файла.", "error");
         return;
       }
 
       const uploadBlob = await prepareUploadBlob(blob, 1920);
       if (!isValidImageBlob(uploadBlob)) {
-        showToast("Грешка при оптимизация на файла", "error");
+        showToast("Грешка при оптимизация на файла.", "error");
         return;
       }
 
       const fileName = buildReportFileName(data.model, data.plate);
 
       try {
-        let response;
-
-        if (uploadProvider === UPLOAD_PROVIDERS.imgbb) {
-          const imagePayload = await blobToBase64Payload(uploadBlob);
-          const body = new FormData();
-          body.append("image", imagePayload);
-          body.append("name", fileName.replace(/\.png$/i, ""));
-
-          response = await fetch(
-            `https://api.imgbb.com/1/upload?key=${encodeURIComponent(activeApiKey)}`,
-            {
-              method: "POST",
-              body,
-            },
-          );
-        } else {
-          const formData = new FormData();
-          formData.append("file", uploadBlob, fileName);
-
-          response = await fetch(`${PRIMARY_API_BASE}/upload`, {
-            method: "POST",
-            headers: {
-              "X-API-Key": activeApiKey,
-            },
-            body: formData,
-          });
-        }
-
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.status}`);
-        }
-
-        const result = await response.json().catch(() => null);
-        const uploadedUrl = extractUploadedUrl(result, uploadProvider);
+        const uploadedUrl = await uploadReportImage({
+          provider: uploadProvider,
+          activeApiKey,
+          uploadBlob,
+          fileName,
+        });
 
         if (uploadedUrl) {
-          rememberRecentUpload(uploadedUrl, uploadProvider, fileName);
           const copied = await copyUrlForEmbedding(uploadedUrl);
           if (copied) {
-            showToast("Файлът е качен, URL е копиран", "success");
+            showToast("Файлът е качен, URL е копиран.", "success");
           } else {
-            showToast("Файлът е качен успешно", "success");
+            showToast("Файлът е качен успешно.", "success");
           }
         } else {
-          showToast("Файлът е качен (липсва URL в отговора)", "info");
+          showToast("Файлът е качен (липсва URL в отговора).", "info");
         }
       } catch {
         downloadBlob(uploadBlob, fileName);
-        showToast("Upload неуспешен, файлът е изтеглен локално", "info");
+        showToast("Upload неуспешен, файлът е изтеглен локално.", "info");
       }
     } finally {
       setIsUploading(false);
@@ -1168,7 +547,7 @@ function App() {
 
     const writeState = () => {
       window.localStorage.setItem(
-        STORAGE_KEY,
+        STORAGE_KEYS.state,
         JSON.stringify({
           data,
           showHp,
@@ -1181,21 +560,12 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [data, showHp, showTq]);
 
-  useEffect(
-    () => () => {
-      if (toastTimerRef.current) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!hasStarted) {
       return;
     }
 
-    setStoredValue(SPLASH_LAST_SEEN_KEY, String(Date.now()));
+    setStoredValue(STORAGE_KEYS.splashLastSeen, String(Date.now()));
   }, [hasStarted]);
 
   useEffect(() => {
@@ -1226,12 +596,58 @@ function App() {
   }, [totalSearchPages]);
 
   useEffect(() => {
-    if (!searchResultsListRef.current) {
+    if (!isApiModalOpen || !apiModalRef.current) {
       return;
     }
 
-    searchResultsListRef.current.scrollTo({ top: 0, behavior: "auto" });
-  }, [safeCurrentPage]);
+    const modal = apiModalRef.current;
+    const focusableSelector =
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+    const focusable = Array.from(
+      modal.querySelectorAll<HTMLElement>(focusableSelector),
+    ).filter((element) => !element.hasAttribute("disabled"));
+
+    if (focusable.length > 0) {
+      focusable[0].focus();
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeApiModal();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey) {
+        if (active === first || !modal.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !modal.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isApiModalOpen]);
 
   if (!hasStarted) {
     return (
@@ -1294,105 +710,26 @@ function App() {
               ))}
             </div>
 
-            {uploadProvider === UPLOAD_PROVIDERS.primary && (
-              <div className="section-block search-tools">
-                <h2>ТЪРСЕНЕ НА КАЧВАНИЯ</h2>
-                <div className="search-row">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        handleApiSearch();
-                      }
-                    }}
-                    placeholder={`*${data.plate}*`}
-                    disabled={isSearching}
-                  />
-                <button type="button" onClick={handleApiSearch} disabled={isSearching}>
-                  {isSearching ? "Търсене..." : "Търси"}
-                </button>
-                </div>
-
-                <div className="search-results-panel">
-                  {!displayedUploads.length ? (
-                    <p className="search-empty">
-                      {hasSearched
-                        ? "Няма резултати от API търсенето"
-                        : "Въведи номер/име и натисни Търси"}
-                    </p>
-                  ) : (
-                    <>
-                      <div className="search-results-list" ref={searchResultsListRef}>
-                        {pagedUploads.map((item) => (
-                          <article className="search-result-row" key={item.url}>
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="search-result-thumb"
-                            >
-                              <img
-                                src={item.url}
-                                alt="Търсене dyno report"
-                                loading="lazy"
-                              />
-                            </a>
-                            <div className="search-result-meta">
-                              <p>{item.fileName || "unnamed-file"}</p>
-                              <span>
-                                provider: {item.provider === UPLOAD_PROVIDERS.imgbb ? "imgbb" : "main"}
-                              </span>
-                              <span>{formatRecentUploadTime(item.createdAt)}</span>
-                            </div>
-                            <div className="search-result-actions">
-                              <button
-                                type="button"
-                                title="Copy URL"
-                                onClick={() => handleCopyResultUrl(item.url)}
-                              >
-                                <Copy aria-hidden="true" />
-                              </button>
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                title="Open file"
-                              >
-                                <Eye aria-hidden="true" />
-                              </a>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-
-                      <div className="search-pagination">
-                        <button
-                          type="button"
-                          onClick={() => setCurrentSearchPage((prev) => Math.max(1, prev - 1))}
-                          disabled={safeCurrentPage <= 1}
-                        >
-                          Prev
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCurrentSearchPage((prev) => Math.min(totalSearchPages, prev + 1))
-                          }
-                          disabled={safeCurrentPage >= totalSearchPages}
-                        >
-                          Next
-                        </button>
-                        <span>
-                          {safeCurrentPage} of {totalSearchPages}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            <SearchPanel
+              plate={data.plate}
+              uploadProvider={uploadProvider}
+              isSearching={isSearching}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSearch={handleApiSearch}
+              onResetSearch={handleResetSearch}
+              displayedUploads={displayedUploads}
+              pagedUploads={pagedUploads}
+              hasSearched={hasSearched}
+              safeCurrentPage={safeCurrentPage}
+              totalSearchPages={totalSearchPages}
+              onPagePrev={() => setCurrentSearchPage((prev) => Math.max(1, prev - 1))}
+              onPageNext={() =>
+                setCurrentSearchPage((prev) => Math.min(totalSearchPages, prev + 1))
+              }
+              onCopyUrl={handleCopyResultUrl}
+              formatRecentUploadTime={formatRecentUploadTime}
+            />
           </div>
         </aside>
 
@@ -1559,6 +896,8 @@ function App() {
         </section>
       </section>
 
+      <p className="build-label">{APP_BUILD_LABEL}</p>
+
       <div className="quick-actions" aria-label="Report quick actions">
         <button type="button" title="Settings" onClick={openApiModal}>
           <span>Settings</span>
@@ -1599,7 +938,7 @@ function App() {
           aria-modal="true"
           aria-label="API key settings"
         >
-          <div className="api-modal">
+          <div className="api-modal" ref={apiModalRef}>
             <h3>API Настройки</h3>
             <label>
               Hosting provider
