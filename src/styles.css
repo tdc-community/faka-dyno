@@ -1109,6 +1109,8 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  align-items: center;
+  text-align: center;
 }
 
 .tech-grid span {
