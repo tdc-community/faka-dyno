@@ -6,16 +6,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
+    "lucide-react": "^0.564.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.8.0",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2",
     "vite": "^5.4.11"
   }
 }

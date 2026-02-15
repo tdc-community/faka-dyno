@@ -6,7 +6,9 @@ import "./styles.css";
 
 document.title = "FAKA Performance";
 
-const faviconLink = document.querySelector("link[rel='icon']") || document.createElement("link");
+const faviconLink =
+  document.querySelector<HTMLLinkElement>("link[rel='icon']") ||
+  document.createElement("link");
 faviconLink.rel = "icon";
 faviconLink.type = "image/png";
 faviconLink.href = logo;
@@ -14,7 +16,13 @@ if (!faviconLink.parentNode) {
   document.head.appendChild(faviconLink);
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Missing root element");
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
