@@ -250,6 +250,7 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [currentSearchPage, setCurrentSearchPage] = useState(1);
+  const [previewUpload, setPreviewUpload] = useState<RecentUpload | null>(null);
   const apiModalRef = useRef<HTMLDivElement | null>(null);
   const { toast, showToast } = useToast();
   const previewRef = useRef<HTMLElement | null>(null);
@@ -376,6 +377,14 @@ function App() {
       copied ? "URL е копиран." : "Неуспешно копиране на URL.",
       copied ? "success" : "error",
     );
+  };
+
+  const openSearchPreview = (upload: RecentUpload) => {
+    setPreviewUpload(upload);
+  };
+
+  const closeSearchPreview = () => {
+    setPreviewUpload(null);
   };
 
   const handleDownload = async () => {
@@ -672,6 +681,23 @@ function App() {
     };
   }, [isApiModalOpen]);
 
+  useEffect(() => {
+    if (!previewUpload) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSearchPreview();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [previewUpload]);
+
   if (!hasStarted) {
     return (
       <main className="splash-screen">
@@ -693,7 +719,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${previewUpload ? " has-search-preview" : ""}`}>
       <section className="layout">
         <aside className="form-panel">
           <div className="form-content">
@@ -754,7 +780,7 @@ function App() {
                   Math.min(totalSearchPages, prev + 1),
                 )
               }
-              onCopyUrl={handleCopyResultUrl}
+              onOpenPreview={openSearchPreview}
               formatRecentUploadTime={formatRecentUploadTime}
             />
           </div>
@@ -962,6 +988,54 @@ function App() {
           <Upload aria-hidden="true" />
         </button>
       </div>
+
+      {previewUpload && (
+        <div
+          className="search-preview-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search result preview"
+          onClick={closeSearchPreview}
+        >
+          <div
+            className="search-preview-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="search-preview-header">
+              <h3>{previewUpload.fileName || "unnamed-file"}</h3>
+              <button
+                type="button"
+                className="search-preview-close"
+                onClick={closeSearchPreview}
+                aria-label="Close preview"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+            <div className="search-preview-media">
+              <img src={previewUpload.url} alt="Search result preview" />
+            </div>
+            <div className="search-preview-link-row">
+              <a
+                className="search-preview-link"
+                href={previewUpload.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {previewUpload.url}
+              </a>
+              <button
+                type="button"
+                className="search-preview-copy-btn"
+                title="Copy URL"
+                onClick={() => handleCopyResultUrl(previewUpload.url)}
+              >
+                <Copy aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isApiModalOpen && (
         <div

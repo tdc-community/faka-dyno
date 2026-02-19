@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Copy, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import type { RecentUpload, UploadProvider } from "../types";
 
 interface SearchPanelProps {
@@ -17,7 +17,7 @@ interface SearchPanelProps {
   totalSearchPages: number;
   onPagePrev: () => void;
   onPageNext: () => void;
-  onCopyUrl: (url: string) => void;
+  onOpenPreview: (upload: RecentUpload) => void;
   formatRecentUploadTime: (createdAt: number) => string;
 }
 
@@ -42,7 +42,7 @@ export default function SearchPanel({
   totalSearchPages,
   onPagePrev,
   onPageNext,
-  onCopyUrl,
+  onOpenPreview,
   formatRecentUploadTime,
 }: SearchPanelProps) {
   const [brokenSearchThumbs, setBrokenSearchThumbs] = useState<
@@ -106,11 +106,11 @@ export default function SearchPanel({
             <div className="search-results-list" ref={searchResultsListRef}>
               {pagedUploads.map((item) => (
                 <article className="search-result-row" key={item.url}>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
                     className="search-result-thumb"
+                    title="Preview"
+                    onClick={() => onOpenPreview(item)}
                   >
                     <img
                       src={
@@ -126,7 +126,7 @@ export default function SearchPanel({
                         );
                       }}
                     />
-                  </a>
+                  </button>
                   <div className="search-result-meta">
                     <p>{item.fileName || "unnamed-file"}</p>
                     <span>
@@ -137,19 +137,11 @@ export default function SearchPanel({
                   <div className="search-result-actions">
                     <button
                       type="button"
-                      title="Copy URL"
-                      onClick={() => onCopyUrl(item.url)}
-                    >
-                      <Copy aria-hidden="true" />
-                    </button>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="Open file"
+                      title="Preview"
+                      onClick={() => onOpenPreview(item)}
                     >
                       <Eye aria-hidden="true" />
-                    </a>
+                    </button>
                   </div>
                 </article>
               ))}
